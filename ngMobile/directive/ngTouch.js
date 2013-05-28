@@ -40,6 +40,16 @@ angular.module('ngMobile')
     }
   });
 
+  $mobile.register({
+    name: 'move',
+    index: -9007199254740992, // The largest negative number possible
+    handler: function(ev, inst) {
+      if (ev.eventType == $mobile.utils.EVENT_MOVE) {
+        inst.trigger(this.name, ev);
+      }
+    }
+  });
+
   return $mobile;
 }])
 
@@ -83,7 +93,42 @@ angular.module('ngMobile')
 }])
 
 
- /**
+/**
+ * @ngdoc directive
+ * @name ngMobile.directive:ngMove
+ *
+ * @description
+ * Specify custom behavior when a pointer is moved after an element has been touched.
+ * A move is synonymous with touch move, pointer move and mouse move events.
+ *
+ * @element ANY
+ * @param {expression} ngMove {@link guide/expression Expression} to evaluate
+ * upon pointer move. (Event object is available as `$event`, Angular Element as '$element')
+ *
+ * @example
+    <doc:example>
+      <doc:source>
+        <button ng-move="moved = $event.distance" ng-init="moved=0">
+          Touch this text then move your mouse pointer
+        </button>
+        Moved {{ moved }}px from initial touch point
+      </doc:source>
+    </doc:example>
+ */
+.directive('ngMove', ['$parse', '$mobileTouch', function($parse, $mobile) {
+  return function(scope, element, attr) {
+    var moveHandler = $parse(attr['ngMove']);
+
+    $mobile.gestureOn(element, 'move').bind('move', function(eventdata) {
+      scope.$apply(function() {
+        moveHandler(scope, {$event:eventdata, $element: element});
+      });
+    });
+  };
+}])
+
+
+/**
  * @ngdoc directive
  * @name ngMobile.directive:ngRelease
  *
