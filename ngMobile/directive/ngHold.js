@@ -15,18 +15,18 @@ angular.module('ngMobile')
     name: 'hold',
     index: 10,
     defaults: {
-      hold_max_pointers    : 1,
-      hold_duration        : 751,    // 750ms, or less, is a tap
-      hold_move_tolerance  : 10,     // Doesn't overlap with drags move tolerance and is equal to click
-      hold_or_right_click  : true,    // Allow users with mice to right click instead of holding
-      touch_active_class  : 'ng-click-active'
+      holdMaxPointers    : 1,
+      holdDuration        : 751,    // 750ms, or less, is a tap
+      holdMoveTolerance  : 10,     // Doesn't overlap with drags move tolerance and is equal to click
+      holdAcceptRightClick  : true,    // Allow users with mice to right click instead of holding
+      touchActiveClass  : 'ng-click-active'
     },
     setup: function(el, inst) {
       // Use the setup function to bind to clicks
       // right clicks are ignored by $mobile
-      if(inst.options.hold_or_right_click) {
+      if(inst.options.holdAcceptRightClick) {
         if($window.document.addEventListener) {
-          el.bind('click contextmenu', function(event){
+          el.bind('click contextmenu', function(event) {
             event = event.originalEvent || event;
             // mouse events use which, pointer events use button
             if(event.which == 3 || event.button == 2) {
@@ -61,17 +61,17 @@ angular.module('ngMobile')
 
       switch(ev.eventType) {
       case $mobile.utils.EVENT_START:
-        if (ev.touches.length <= inst.options.hold_max_pointers) {
+        if (ev.touches.length <= inst.options.holdMaxPointers) {
           self.valid = $timeout(function() {
             inst.current.name = self.name;    // Set the event and trigger if
             inst.trigger(self.name, ev);      // we have been holding long
             self.valid = false;               // enough
-          }, inst.options.hold_duration, true);
+          }, inst.options.holdDuration, true);
         }
         break;
       case $mobile.utils.EVENT_MOVE:
-        if (self.valid && (ev.distance > inst.options.hold_move_tolerance ||
-            ev.touches.length <= inst.options.hold_max_pointers)) {
+        if (self.valid && (ev.distance > inst.options.holdMoveTolerance ||
+            ev.touches.length <= inst.options.holdMaxPointers)) {
           $timeout.cancel(self.valid);
           self.valid = false;           // Invalidate if we exceed tolerances
         }
@@ -114,18 +114,9 @@ angular.module('ngMobile')
  */
 .directive('ngHold', ['$parse', '$mobileHold', function($parse, $mobile) {
   return function(scope, element, attr) {
-    var holdHandler = $parse(attr['ngHold']),
-        options = {};
+    var holdHandler = $parse(attr['ngHold']);
 
-    // Do we want right clicking to count as a hold?
-    //  Useful if hold triggers a context menu.
-    //  Not useful if hold enables dragging which can occur on the same touch.
-    //    (Think organising iOS icons)
-    if (attr['acceptRightClick'] == 'false') {
-      options.hold_or_right_click = false;
-    }
-
-    $mobile.gestureOn(element, 'hold', options).bind('hold', function(eventdata) {
+    $mobile.gestureOn(element, 'hold', $mobile.extractSettings(scope, attr)).bind('hold', function(eventdata) {
       scope.$apply(function() {
         holdHandler(scope, {$event: eventdata, $element: element});
       });

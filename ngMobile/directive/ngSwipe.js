@@ -17,17 +17,17 @@ angular.module('ngMobile')
     name: 'swipe',
     index: 40,
     defaults: {
-      swipe_max_pointers     : 1,
-      swipe_min_velocity     : 0.7,
+      swipeMaxPointers     : 1,
+      swipeMinVelocity     : 0.7,
       // The maximum vertical or horizontal delta for a swipe should be less than 75px.
-      swipe_max_orthogonality: 75,
+      swipeMaxOrthogonality: 75,
       // Vertical distance should not be more than a fraction of the horizontal distance
       //  and vice versa.
-      swipe_xy_ratio         : 0.3,
+      swipeXyRatio         : 0.3,
       // At least a 30px motion is necessary for a swipe.
-      swipe_min_distance     : 30,
+      swipeMinDistance     : 30,
       // The total distance in any direction before we make the call on swipe vs scroll.
-      swipe_move_buffer      : 10
+      swipeMoveBuffer      : 10
     },
     handler: function(ev, inst) {
       switch (ev.eventType) {
@@ -49,19 +49,19 @@ angular.module('ngMobile')
         //  Do this before the buffer check as it prevents default
         //  and we don't want to prevent scrolling for no reason
         if(totalX > totalY) {
-          if (totalY > inst.options.swipe_max_orthogonality) {
+          if (totalY > inst.options.swipeMaxOrthogonality) {
             this.valid = false;
             return;
           }
         } else {
-          if (totalX > inst.options.swipe_max_orthogonality) {
+          if (totalX > inst.options.swipeMaxOrthogonality) {
             this.valid = false;
             return;
           }
         }
 
         // Don't prevent default until we clear the buffer
-        if (totalX < inst.options.swipe_move_buffer && totalY < inst.options.swipe_move_buffer) {
+        if (totalX < inst.options.swipeMoveBuffer && totalY < inst.options.swipeMoveBuffer) {
           return;
         } else if (inst.handlers[this.name] || inst.handlers[this.name + ev.direction]) {
           // If a handler exists for this direction of swipe then prevent default
@@ -81,17 +81,17 @@ angular.module('ngMobile')
         // Check the swipe meets the requirements
         if(totalX > totalY) {
           if (!(
-            totalY <= inst.options.swipe_max_orthogonality &&
-            totalX >  inst.options.swipe_min_distance &&
-            totalY / totalX < inst.options.swipe_xy_ratio &&
-            ev.velocityX >= inst.options.swipe_min_velocity
+            totalY <= inst.options.swipeMaxOrthogonality &&
+            totalX >  inst.options.swipeMinDistance &&
+            totalY / totalX < inst.options.swipeXyRatio &&
+            ev.velocityX >= inst.options.swipeMinVelocity
           )) { return; }
         } else {
           if (!(
-            totalX <= inst.options.swipe_max_orthogonality &&
-            totalY >  inst.options.swipe_min_distance &&
-            totalX / totalY < inst.options.swipe_xy_ratio &&
-            ev.velocityY >= inst.options.swipe_min_velocity
+            totalX <= inst.options.swipeMaxOrthogonality &&
+            totalY >  inst.options.swipeMinDistance &&
+            totalX / totalY < inst.options.swipeXyRatio &&
+            ev.velocityY >= inst.options.swipeMinVelocity
           )) { return; }
         }
 
@@ -136,7 +136,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var swipeHandler = $parse(attr['ngSwipe']);
 
-    $mobile.gestureOn(element, 'swipe').bind('swipe', function(eventdata) {
+    $mobile.gestureOn(element, 'swipe', $mobile.extractSettings(scope, attr)).bind('swipe', function(eventdata) {
       scope.$apply(function() {
           swipeHandler(scope, {$event:eventdata, $element:element});
       });
@@ -175,7 +175,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var swipeHandler = $parse(attr['ngSwipeRight']);
 
-    $mobile.gestureOn(element, 'swipe').bind('swiperight', function(eventdata) {
+    $mobile.gestureOn(element, 'swipe', $mobile.extractSettings(scope, attr)).bind('swiperight', function(eventdata) {
       scope.$apply(function() {
           swipeHandler(scope, {$event:eventdata, $element:element});
       });
@@ -214,7 +214,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var swipeHandler = $parse(attr['ngSwipeLeft']);
 
-    $mobile.gestureOn(element, 'swipe').bind('swipeleft', function(eventdata) {
+    $mobile.gestureOn(element, 'swipe', $mobile.extractSettings(scope, attr)).bind('swipeleft', function(eventdata) {
       scope.$apply(function() {
           swipeHandler(scope, {$event:eventdata, $element:element});
       });
@@ -252,7 +252,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var swipeHandler = $parse(attr['ngSwipeUp']);
 
-    $mobile.gestureOn(element, 'swipe').bind('swipeup', function(eventdata) {
+    $mobile.gestureOn(element, 'swipe', $mobile.extractSettings(scope, attr)).bind('swipeup', function(eventdata) {
       scope.$apply(function() {
           swipeHandler(scope, {$event:eventdata, $element:element});
       });
@@ -290,7 +290,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var swipeHandler = $parse(attr['ngSwipeDown']);
 
-    $mobile.gestureOn(element, 'swipe').bind('swipedown', function(eventdata) {
+    $mobile.gestureOn(element, 'swipe', $mobile.extractSettings(scope, attr)).bind('swipedown', function(eventdata) {
       scope.$apply(function() {
           swipeHandler(scope, {$event:eventdata, $element:element});
       });

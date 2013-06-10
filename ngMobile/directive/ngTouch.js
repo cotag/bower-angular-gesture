@@ -16,11 +16,11 @@ angular.module('ngMobile')
     name: 'touch',
     index: -Infinity,
     defaults: {
-      touch_prevent_default: false,
-      touch_active_class: 'ng-click-active'
+      touchPreventDefault: false,
+      touchActiveClass: 'ng-click-active'
     },
     handler: function(ev, inst) {
-      if (inst.options.touch_prevent_default) {
+      if (inst.options.touchPreventDefault) {
         ev.preventDefault();
       }
 
@@ -84,7 +84,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var touchHandler = $parse(attr['ngTouch']);
 
-    $mobile.gestureOn(element, 'touch').bind('touch', function(eventdata) {
+    $mobile.gestureOn(element, 'touch', $mobile.extractSettings(scope, attr)).bind('touch', function(eventdata) {
       scope.$apply(function() {
         touchHandler(scope, {$event: eventdata, $element: element});
       });
@@ -119,7 +119,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var moveHandler = $parse(attr['ngMove']);
 
-    $mobile.gestureOn(element, 'move').bind('move', function(eventdata) {
+    $mobile.gestureOn(element, 'move', $mobile.extractSettings(scope, attr)).bind('move', function(eventdata) {
       scope.$apply(function() {
         moveHandler(scope, {$event:eventdata, $element: element});
       });
@@ -154,7 +154,7 @@ angular.module('ngMobile')
   return function(scope, element, attr) {
     var releaseHandler = $parse(attr['ngRelease']);
 
-    $mobile.gestureOn(element, 'release').bind('release', function(eventdata) {
+    $mobile.gestureOn(element, 'release', $mobile.extractSettings(scope, attr)).bind('release', function(eventdata) {
       scope.$apply(function() {
         releaseHandler(scope, {$event:eventdata, $element: element});
       });

@@ -449,11 +449,10 @@ angular.module('ngMobile', [])
  */
 .provider('$mobile', function() {
 
-  this.defaults = {
-    set_browser_behaviors: true
-  };
-
-  this.default_browser_behavior = {
+  var defaults = {
+    setBrowserBehaviors: true
+  },
+  defaultBrowserBehavior = {
     // this also triggers onselectstart=false for IE
     userSelect: 'none',
     // this makes the element blocking in IE10 >, you could experiment with the value
@@ -465,14 +464,21 @@ angular.module('ngMobile', [])
     tapHighlightColor: 'rgba(0,0,0,0)'
   };
 
+  this.setGestureDefaults = function(settings) {
+    angular.extend(defaults, settings);
+  };
+
+  this.setDefaultBrowserBehavior = function(settings) {
+    angular.extend(defaultBrowserBehavior, settings);
+  };
+
 
   this.$get = ['$window', '$document', '$mobileUtils', function($window, $document, $mobileUtils) {
-    var self = this,     // Curry to provided config
-      gestureTypes = {}, // Gestures registered with $mobile
-      instanceId = 0,    // id of last instance (for use in associative arrays)
+    var gestureTypes = {}, // Gestures registered with $mobile
+      instanceId = 0,      // id of last instance (for use in associative arrays)
 
-      pointer_allocation = {},  // PointerId => Instances (capture mapping)
-      event_pointers = {},      // Instance => Pointers (similar to touches list on iOS)
+      pointerAllocation = {},  // PointerId => Instances (capture mapping)
+      eventPointers = {},      // Instance => Pointers (similar to touches list on iOS)
 
 
       /*
@@ -513,25 +519,25 @@ angular.module('ngMobile', [])
 
             if (eventType === $mobileUtils.EVENT_START) {
               // protect against failing to get an up or end on this pointer
-              if (pointer_allocation[pointerObj.identifier]) {
-                pointer_allocation[pointerObj.identifier].stopDetect();
+              if (pointerAllocation[pointerObj.identifier]) {
+                pointerAllocation[pointerObj.identifier].stopDetect();
               }
 
               // Grab the gesture state
               instance = element.data('__$mobile.config__');
 
               // Check if the element can capture another pointer and assign the pointer to that element
-              if(instance && instance.enabled && instance.pointers_count < instance.pointers_max) {
-                if(instance.options.touch_active_class) {
-                  element.addClass(instance.options.touch_active_class);
+              if(instance && instance.enabled && instance.pointersCount < instance.pointersMax) {
+                if(instance.options.touchActiveClass) {
+                  element.addClass(instance.options.touchActiveClass);
                 }
 
-                pointer_allocation[pointerObj.identifier] = instance;
-                if (instance.pointers_count == 0) {
-                  event_pointers[instance] = {};
+                pointerAllocation[pointerObj.identifier] = instance;
+                if (instance.pointersCount == 0) {
+                  eventPointers[instance] = {};
                 }
-                event_pointers[instance][pointerObj.identifier] = pointerObj;
-                instance.pointers_count = instance.pointers_count + 1;
+                eventPointers[instance][pointerObj.identifier] = pointerObj;
+                instance.pointersCount = instance.pointersCount + 1;
 
                 // Capture pointer events
                 if($mobileUtils.HAS_POINTEREVENTS) {
@@ -549,11 +555,11 @@ angular.module('ngMobile', [])
               } else {
                 continue;
               }
-            } else if (pointer_allocation[pointerObj.identifier]) {
+            } else if (pointerAllocation[pointerObj.identifier]) {
               // NOTE:: we could attach pointers to elements if a user has missed the target element for the initial touch?
               //  Might make this a configuration option in the future: gobble_pointers?
-              instance = pointer_allocation[pointerObj.identifier];
-              event_pointers[instance][pointerObj.identifier] = pointerObj;
+              instance = pointerAllocation[pointerObj.identifier];
+              eventPointers[instance][pointerObj.identifier] = pointerObj;
 
               // Keep track of gesture instances that these pointers touch
               if(!instanceList[instance]) {
@@ -595,12 +601,12 @@ angular.module('ngMobile', [])
           var touches = [];
 
           // Get the touches related to this element
-          angular.forEach(event_pointers[instance], function(value) {
+          angular.forEach(eventPointers[instance], function(value) {
             this.push(value);
           }, touches);
 
           // Make this a move event if there are still fingers on the screen
-          if (eventType === $mobileUtils.EVENT_END && (pointersEnding.length - instance.pointers_count) > 0) {
+          if (eventType === $mobileUtils.EVENT_END && (pointersEnding.length - instance.pointersCount) > 0) {
             eventType = $mobileUtils.EVENT_MOVE;
           }
 
@@ -656,9 +662,9 @@ angular.module('ngMobile', [])
         } else {
           // We remove the pointers that are no longer on the screen
           for (var i = 0; i < pointersEnding.length; ++i) {
-            delete pointer_allocation[pointersEnding[i]]
-            delete event_pointers[instance][pointersEnding[i]]
-            instance.pointers_count = instance.pointers_count - 1;
+            delete pointerAllocation[pointersEnding[i]]
+            delete eventPointers[instance][pointersEnding[i]]
+            instance.pointersCount = instance.pointersCount - 1;
           }
         }
       };
@@ -694,10 +700,23 @@ angular.module('ngMobile', [])
       utils: $mobileUtils,
 
       /**
+       * Valid setting names are evaluates against the current scope and set for this element
+       */
+      extractSettings: function(scope, attributes) {
+        var p, result = {};
+        for(p in attributes) {
+          if((defaults.hasOwnProperty(p) || defaultBrowserBehavior.hasOwnProperty(p)) && attributes.hasOwnProperty(p)) {
+            result[p] = scope.$eval(attributes[p]);
+          }
+        }
+        return result;
+      },
+
+      /**
        * Gesture registration with default setting allocation
        */
       register: function(options) {
-        self.defaults = angular.extend(options.defaults || {}, self.defaults || {});  // We don't want to override any user defined defaults
+        defaults = angular.extend(options.defaults || {}, defaults);  // We don't want to override any user defined defaults
 
         delete options.defaults;
 
@@ -847,21 +866,21 @@ angular.module('ngMobile', [])
              * to stop other gestures from being fired
              */
             stopDetect: function() {
-              var pointers = event_pointers[instance];
+              var pointers = eventPointers[instance];
 
-              if(instance.options.touch_active_class) {
-                element.removeClass(instance.options.touch_active_class);
+              if(instance.options.touchActiveClass) {
+                element.removeClass(instance.options.touchActiveClass);
               }
 
               if (pointers) {
-                delete event_pointers[instance];
+                delete eventPointers[instance];
                 angular.forEach(pointers, function(pointer, key) {
-                  delete pointer_allocation[key];
+                  delete pointerAllocation[key];
                 });
 
                 // stopped!
                 instance.stopped = true;
-                instance.pointers_count = 0;
+                instance.pointersCount = 0;
 
                 // clone current data to the store as the previous gesture
                 // used for the double tap gesture, since this is an other gesture detect session
@@ -895,27 +914,32 @@ angular.module('ngMobile', [])
             previous: undefined, // The previous gesture on this element
             current: undefined,  // Are we currently gesturing
 
-            pointers_count: 0,   // Number of active pointers
-            pointers_max: 1,     // The max pointers this element could use to perform a gesture
+            pointersCount: 0,    // Number of active pointers
+            pointersMax: 1,      // The max pointers this element could use to perform a gesture
 
-            options: undefined   // The gesture configuration associated with this element
+            options: undefined,   // The gesture configuration associated with this element
+            browserBehaviors: {}
           };
 
         if (!instance.id) {
-          options = angular.extend(
-            angular.copy(self.defaults),  // Clone the defaults
-            options || {}        // Merge in any overriding changes
+          instance.options = angular.extend(
+            angular.copy(defaults),  // Clone the defaults
+            options || {}            // Merge in any overriding changes
           );
 
           instanceId = instanceId + 1;
           instance.id = instanceId.toString();
 
-          instance.options = options;
           element.data('__$mobile.config__', instance);
 
-          // add some css to the element to prevent the browser from doing its native behaviour
-          if(options.set_browser_behaviors) {
-            $mobileUtils.stopDefaultBrowserBehavior(element[0], self.default_browser_behavior);
+          // add some css to the element to prevent the browser from doing its native behavior
+          if(options.setBrowserBehaviors) {
+            for(i in defaultBrowserBehavior) {
+              if(defaultBrowserBehavior.hasOwnProperty(i)) {
+                instance.browserBehaviors[i] = instance.options[i] || defaultBrowserBehavior[i];
+              }
+            }
+            $mobileUtils.stopDefaultBrowserBehavior(element[0], instance.browserBehaviors);
           }
 
           // The events are no longer required for the current element
@@ -971,8 +995,8 @@ angular.module('ngMobile', [])
               gesture.setup.call(instance.registered[gesture.name], element, instance);
             }
 
-            if((instance.options[gesture.name + '_max_pointers'] || 1) > instance.pointers_max) {
-              instance.pointers_max = instance.options[gesture.name + '_max_pointers'] || 1;
+            if((instance.options[gesture.name + '_max_pointers'] || 1) > instance.pointersMax) {
+              instance.pointersMax = instance.options[gesture.name + '_max_pointers'] || 1;
             }
           }
         }

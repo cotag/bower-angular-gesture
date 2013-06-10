@@ -26,14 +26,14 @@ angular.module('ngMobile')
     name: 'tap',
     index: 100,
     defaults: {
-      tap_max_pointers    : 1,
-      tap_max_duration    : 750,    // Shorter than 750ms is a tap, longer is a taphold or drag.
-      tap_move_tolerance  : 10,     // 10px doesn't overlap with drags move tolerance
-      tap_always          : true,   // tap on double tap (w3c way for click)
-      prevent_ghost_clicks: true,   // ignore virtual click events if click already handled
-      doubletap_tolerance : 20,     // allow for a bit of human error
-      doubletap_interval  : 400,
-      touch_active_class  : 'ng-click-active'
+      tapMaxPointers    : 1,
+      tapMaxDuration    : 750,    // Shorter than 750ms is a tap, longer is a taphold or drag.
+      tapMoveTolerance  : 10,     // 10px doesn't overlap with drags move tolerance
+      tapAlways          : true,   // tap on double tap (w3c way for click)
+      preventGhostClicks: true,   // ignore virtual click events if click already handled
+      doubletapTolerance : 20,     // allow for a bit of human error
+      doubletapInterval  : 400,
+      touchActiveClass  : 'ng-click-active'
     },
     setup: function(el, inst) {
       var self = this;
@@ -42,7 +42,7 @@ angular.module('ngMobile')
       // As IE doesn't have a mouse down event for double taps
       if(!$window.document.addEventListener) {
         el.bind('dblclick', function(ev) {
-          if(inst.options.tap_always) {
+          if(inst.options.tapAlways) {
             inst.trigger('tap', ev);
           }
           inst.trigger('doubletap', ev);
@@ -71,7 +71,7 @@ angular.module('ngMobile')
         this.valid = true;
         break;
       case $mobile.utils.EVENT_MOVE:
-        if (ev.distance > inst.options.tap_move_tolerance) {
+        if (ev.distance > inst.options.tapMoveTolerance) {
           this.valid = false;
         }
         break;
@@ -81,8 +81,8 @@ angular.module('ngMobile')
 
         // when the touch time is higher then the max touch time
         // or when the moving distance is too much
-        if(!this.valid || ev.deltaTime > inst.options.tap_max_duration ||
-          ev.distance > inst.options.tap_move_tolerance) {
+        if(!this.valid || ev.deltaTime > inst.options.tapMaxDuration ||
+          ev.distance > inst.options.tapMoveTolerance) {
           if (inst.current.name != "") {
             // Prevent click if another gesture is occurring
             // Otherwise run with browser default behavior
@@ -98,10 +98,10 @@ angular.module('ngMobile')
 
         // check if double tap
         if(prev && prev.name == this.name && !this.did_doubletap &&
-            (ev.timeStamp - prev.lastEvent.timeStamp) < inst.options.doubletap_interval &&
-            $mobile.utils.getDistance(prev.lastEvent.center, ev.center) < inst.options.doubletap_tolerance) {
+            (ev.timeStamp - prev.lastEvent.timeStamp) < inst.options.doubletapInterval &&
+            $mobile.utils.getDistance(prev.lastEvent.center, ev.center) < inst.options.doubletapTolerance) {
 
-          if(inst.options.tap_always) {
+          if(inst.options.tapAlways) {
             inst.trigger(inst.current.name, ev);
           }
           inst.trigger('doubletap', ev);
@@ -112,7 +112,7 @@ angular.module('ngMobile')
           inst.trigger(inst.current.name, ev);
         }
 
-        if (ev.srcEvent.type == 'touchend' && inst.options.prevent_ghost_clicks) {
+        if (ev.srcEvent.type == 'touchend' && inst.options.preventGhostClicks) {
           $mobile.utils.preventGhostClick(ev.touches[0].clientX, ev.touches[0].clientY);
         }
 
@@ -172,7 +172,7 @@ angular.module('ngMobile')
     // something else nearby.
     element[0].onclick = function(event) {};
 
-    $mobile.gestureOn(element, 'tap').bind('tap', function(eventdata) {
+    $mobile.gestureOn(element, 'tap', $mobile.extractSettings(scope, attr)).bind('tap', function(eventdata) {
       scope.$apply(function() {
         clickHandler(scope, {$event: eventdata, $element: element});
       });
@@ -212,7 +212,7 @@ angular.module('ngMobile')
     // something else nearby.
     element[0].onclick = function(event) {};
 
-    $mobile.gestureOn(element, 'tap').bind('doubletap', function(eventdata) {
+    $mobile.gestureOn(element, 'tap', $mobile.extractSettings(scope, attr)).bind('doubletap', function(eventdata) {
       scope.$apply(function() {
         clickHandler(scope, {$event:eventdata, $element: element});
       });
