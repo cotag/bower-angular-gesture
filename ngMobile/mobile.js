@@ -478,26 +478,30 @@
       };
 
 
-      this.$get = ['$window', '$document', '$mobileUtils', function($window, $document, $mobileUtils) {
+      this.$get = ['$window', '$document', '$timeout', '$mobileUtils', function($window, $document, $timeout, $mobileUtils) {
         var gestureTypes = {}, // Gestures registered with $mobile
           instanceId = 0,      // id of last instance (for use in associative arrays)
 
           pointerAllocation = {},  // PointerId => Instances (capture mapping)
           eventPointers = {},      // Instance => Pointers (similar to touches list on iOS)
 
+          // Track the current event so we don't steal the capture
+          currentEvent,
+
 
           /*
            * Delayed pointer release
            */
           releasePointer = function(element, pointerId) {
-            $window.setTimeout(function() {
+            $timeout(function() {
               element.releasePointerCapture(pointerId);
-            }, 0);
+            }, 0, false);
           },
 
 
           detect = function(event, eventType, instance, pointersEnding) {
             var i, touches;
+            pointersEnding = pointersEnding || [];  // may be undefined
 
             if (instance.enabled) {
               touches = [];
@@ -540,6 +544,8 @@
                  * stop bubbling the event up to its parents
                  */
                 stopPropagation: function() {
+                  this.srcEvent.propagation_stop_sig = true;
+
                   if (this.srcEvent.stopPropagation) {
                     this.srcEvent.stopPropagation();
                   } else {
@@ -564,7 +570,7 @@
             } else {
               // We remove the pointers that are no longer on the screen
               for (i = 0; i < pointersEnding.length; i += 1) {
-                delete pointerAllocation[pointersEnding[i]];
+                delete pointerAllocation[pointersEnding[i]];        // This is ok
                 delete eventPointers[instance][pointersEnding[i]];
                 instance.pointersCount = instance.pointersCount - 1;
               }
@@ -579,98 +585,145 @@
            */
           onTouch = function(element, eventType) {
             element.bind($mobileUtils.EVENT_TYPES[eventType], function(event) {
-              event = event.originalEvent || event;
+              event = event.originalEvent || event; // in case of jQuery
 
+              // Return if we have already handled this event or the event is a right click
               // NOTE:: event.button is for IE8
-              if ((event.type.match(/mouse/i) && (event.which || event.button) !== 1) || (event.type.match(/pointerdown/i) && event.button !== 0)) {
-                return; // Ignore right clicks
+              if (event === currentEvent || ((event.type.match(/mouse/i) && (event.which || event.button) !== 1) || (event.type.match(/pointerdown/i) && event.button !== 0))) {
+                return;
               }
-
-              var pointerList = (event.changedTouches && event.changedTouches.length) ? event.changedTouches : ((event.touches && event.touches.length) ? event.touches : [event]),
-                i,
-                pointerObj,
-                instance,
-                instanceList = {};
+              currentEvent = event;
 
               // Normalise pointers, mice and touches with pointer lists
               // Effectively emulates touch events with element level isolation
-              for (i = 0; i < pointerList.length; i += 1) {
-                pointerObj = pointerList[i];
-                pointerObj.identifier = (pointerObj.identifier !== 'undefined') ? pointerObj.identifier : (pointerObj.pointerId !== 'undefined') ? pointerObj.pointerId : 1;
+              var pointerList = (event.changedTouches && event.changedTouches.length) ? event.changedTouches : ((event.touches && event.touches.length) ? event.touches : [event]),
+                i,
+                p,
+                pointerObj,
+                instance,
+                instances,
+                captureProcessed,
+                pointersEnding = {};
 
-                if (eventType === $mobileUtils.EVENT_START) {
+              if (eventType === $mobileUtils.EVENT_START) {
+
+                // run up the tree looking for mobile elements
+                instances = [];
+                i = element;
+                do {
+                  instance = i.data('__$mobile.config__');
+                  if (instance && instance.enabled) {
+                    instances.push(instance);
+                  }
+                  i = i.parent();
+                } while (i[0]);
+
+                // loop through the pointers
+                for (p = 0; p < pointerList.length; p += 1) {
+                  captureProcessed = false;
+                  pointerObj = pointerList[p];
+                  pointerObj.identifier = (pointerObj.identifier !== undefined) ? pointerObj.identifier : (pointerObj.pointerId !== undefined) ? pointerObj.pointerId : 1;
+
                   // protect against failing to get an up or end on this pointer
                   if (pointerAllocation[pointerObj.identifier]) {
-                    pointerAllocation[pointerObj.identifier].stopDetect();
+                    instance = pointerAllocation[pointerObj.identifier];
+                    for (i = 0; i < instance.length; i += 1) {
+                      instance[i].stopDetect();
+                    }
                   }
 
-                  // Grab the gesture state
-                  instance = element.data('__$mobile.config__');
+                  // reset the current id
+                  pointerAllocation[pointerObj.identifier] = [];
 
-                  // Check if the element can capture another pointer and assign the pointer to that element
-                  if (instance && instance.enabled && instance.pointersCount < instance.pointersMax) {
-                    if (instance.options.touchActiveClass) {
-                      element.addClass(instance.options.touchActiveClass);
-                    }
+                  for (i = 0; i < instances.length; i += 1) {
+                    instance = instances[i];
 
-                    pointerAllocation[pointerObj.identifier] = instance;
-                    if (instance.pointersCount === 0) {
-                      eventPointers[instance] = {};
-                    }
-                    eventPointers[instance][pointerObj.identifier] = pointerObj;
-                    instance.pointersCount = instance.pointersCount + 1;
+                    // Check if the element can capture another pointer and assign the pointer to that element
+                    if (instance.pointersCount < instance.pointersMax) {
+                      // TODO:: check for stealing element here
+                      // if it exists and a parent element has not indicated prevent stealing
+                      // then it should become the sole target of this event (or shared amongst other stealing elements)
 
-                    // Capture pointer events
-                    if ($mobileUtils.HAS_POINTEREVENTS) {
-                      if (!element[0].setPointerCapture) {
-                        element[0].setPointerCapture = element[0].msSetPointerCapture;
-                        element[0].releasePointerCapture = element[0].msReleasePointerCapture;
+
+                      if (instance.options.touchActiveClass) {
+                        element.addClass(instance.options.touchActiveClass);
                       }
-                      element[0].setPointerCapture(pointerObj.identifier);
-                    }
 
-                    // Keep track of gesture instances that these pointers touch
-                    if (!instanceList[instance]) {
-                      instanceList[instance] = [instance];
-                    }
-                  } else {
-                    continue;
-                  }
-                } else if (pointerAllocation[pointerObj.identifier]) {
-                  // NOTE:: we could attach pointers to elements if a user has missed the target element for the initial touch?
-                  //  Might make this a configuration option in the future: gobble_pointers?
-                  instance = pointerAllocation[pointerObj.identifier];
-                  eventPointers[instance][pointerObj.identifier] = pointerObj;
+                      pointerAllocation[pointerObj.identifier].push(instance);
+                      if (instance.pointersCount === 0) {
+                        eventPointers[instance] = {};
+                      }
+                      eventPointers[instance][pointerObj.identifier] = pointerObj;
+                      instance.pointersCount = instance.pointersCount + 1;
 
-                  // Keep track of gesture instances that these pointers touch
-                  if (!instanceList[instance]) {
-                    instanceList[instance] = [instance];
-                  }
-
-                  // Keep track of pointers that are leaving the screen
-                  if (eventType === $mobileUtils.EVENT_END) {
-                    instanceList[instance].push(pointerObj.identifier);
-
-                    // Release captured pointers
-                    if ($mobileUtils.HAS_POINTEREVENTS) {
-                      releasePointer(element[0], pointerObj.identifier);
+                      // Capture pointer events on the first element accepting the pointer
+                      if (!captureProcessed && $mobileUtils.HAS_POINTEREVENTS) {
+                        if (!element[0].setPointerCapture) {
+                          element[0].setPointerCapture = element[0].msSetPointerCapture;
+                          element[0].releasePointerCapture = element[0].msReleasePointerCapture;
+                        }
+                        element[0].setPointerCapture(pointerObj.identifier);
+                        captureProcessed = true;
+                      }
                     }
                   }
-                } else {
-                  continue;
+
+                  // Check for IE8 to add pageX and pageY (same as below) -----------------------------v
+                  if (!$window.document.addEventListener) {
+                    pointerObj.pageX = pointerObj.clientX + $window.document.body.scrollLeft;
+                    pointerObj.pageY = pointerObj.clientY + $window.document.body.scrollTop;
+                  }
                 }
+              } else {
+                // loop through the pointers
+                for (p = 0; p < pointerList.length; p += 1) {
+                  captureProcessed = false;
+                  pointerObj = pointerList[p];
+                  pointerObj.identifier = (pointerObj.identifier !== undefined) ? pointerObj.identifier : (pointerObj.pointerId !== undefined) ? pointerObj.pointerId : 1;
 
-                // Check for IE8 to add pageX and pageY
-                if (!$window.document.addEventListener) {
-                  pointerObj.pageX = pointerObj.clientX + $window.document.body.scrollLeft;
-                  pointerObj.pageY = pointerObj.clientY + $window.document.body.scrollTop;
+                  if (pointerAllocation[pointerObj.identifier]) {
+                    // NOTE:: we could attach pointers to elements if a user has missed the target element for the initial touch?
+                    //  Might make this a configuration option in the future: gobble_pointers?
+                    instances = pointerAllocation[pointerObj.identifier];
+
+                    // Check for IE8 to add pageX and pageY (same as above) ----------------------------^
+                    if (!$window.document.addEventListener) {
+                      pointerObj.pageX = pointerObj.clientX + $window.document.body.scrollLeft;
+                      pointerObj.pageY = pointerObj.clientY + $window.document.body.scrollTop;
+                    }
+
+                    for (i = 0; i < instances.length; i += 1) {
+                      instance = instances[i];
+
+                      // Update pointer
+                      eventPointers[instance][pointerObj.identifier] = pointerObj;
+
+                      // Keep track of pointers that are leaving the screen
+                      if (eventType === $mobileUtils.EVENT_END) {
+                        if (pointersEnding[instance]) {
+                          pointersEnding[instance].push(pointerObj.identifier);
+                        } else {
+                          pointersEnding[instance] = [pointerObj.identifier];
+                        }
+
+                        // Release captured pointers
+                        if (!captureProcessed && $mobileUtils.HAS_POINTEREVENTS) {
+                          releasePointer(element[0], pointerObj.identifier);
+                          captureProcessed = true;
+                        }
+                      }
+                    }
+                  }
                 }
               }
 
-              // Detect gestures for the 
-              for (instance in instanceList) {
-                if (instanceList.hasOwnProperty(instance)) {
-                  detect(event, eventType, instanceList[instance].shift(), instanceList[instance]);
+              // Detect gestures
+              if (instances) {
+                for (i = 0; i < instances.length; i += 1) {
+                  detect(event, eventType, instances[i], pointersEnding[instances[i]]);
+                  if (event.propagation_stop_sig) {
+                    break;
+                  }
                 }
               }
             });
@@ -883,7 +936,10 @@
                  * to stop other gestures from being fired
                  */
                 stopDetect: function() {
-                  var pointers = eventPointers[instance];
+                  var pointers = eventPointers[instance],
+                    allocations,
+                    pointerId,
+                    i;
 
                   if (instance.options.touchActiveClass) {
                     element.removeClass(instance.options.touchActiveClass);
@@ -891,9 +947,20 @@
 
                   if (pointers) {
                     delete eventPointers[instance];
-                    angular.forEach(pointers, function(pointer, key) {
-                      delete pointerAllocation[key];
-                    });
+                    for (pointerId in pointers) {
+                      // Splice out the instance in question if multiple elements are executing on it
+                      if (pointerAllocation.hasOwnProperty(pointerId) && pointerAllocation[pointerId].length > 1) {
+                        allocations = pointerAllocation[pointerId];
+
+                        for (i = 0; i < allocations.length; i += 1) {
+                          if (allocations[i] === instance) {
+                            allocations.splice(i, 1);
+                          }
+                        }
+                      } else {
+                        delete pointerAllocation[pointerId];
+                      }
+                    }
 
                     // stopped!
                     instance.stopped = true;
@@ -950,7 +1017,7 @@
               element.data('__$mobile.config__', instance);
 
               // add some css to the element to prevent the browser from doing its native behavior
-              if (options.setBrowserBehaviors) {
+              if (instance.options.setBrowserBehaviors) {
                 for (i in defaultBrowserBehavior) {
                   if (defaultBrowserBehavior.hasOwnProperty(i)) {
                     instance.browserBehaviors[i] = instance.options[i] || defaultBrowserBehavior[i];
