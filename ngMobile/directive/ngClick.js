@@ -83,7 +83,7 @@
             // when the touch time is higher then the max touch time
             // or when the moving distance is too much
             if (!this.valid || ev.deltaTime > inst.options.tapMaxDuration || ev.distance > inst.options.tapMoveTolerance) {
-              if (inst.current.name !== "") {
+              if (inst.current.name !== '') {
                 // Prevent click if another gesture is occurring
                 // Otherwise run with browser default behavior
                 this.allow_click = $timeout(function() {
