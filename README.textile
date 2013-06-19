@@ -1,4 +1,4 @@
-h1. Mobile Gestures for Angular JS
+h1. Mobile Gestures for Angular JS !https://travis-ci.org/cotag/angular-gesture.png!:https://travis-ci.org/cotag/angular-gesture
 
 To use with http://yeoman.io/ do the following:
 
