@@ -3,7 +3,7 @@ h1. Mobile Gestures for Angular JS
 To use with http://yeoman.io/ do the following:
 
 # Open bower.json or components.json
-# Add @"angular-gesture": "~1.1.0"@ to your dependency list
+# Add @"angular-gesture": "~1.1.2"@ to your dependency list
 # Run @bower install@
 # In your application you can now add: (depending on what you need)
 #* @<script src="components/angular-gesture/ngMobile/mobile.js"></script>@
@@ -11,6 +11,17 @@ To use with http://yeoman.io/ do the following:
 #* @<script src="components/angular-gesture/ngMobile/directive/ngClick.js"></script>@
 #* @<script src="components/angular-gesture/ngMobile/directive/ngHold.js"></script>@
 #* @<script src="components/angular-gesture/ngMobile/directive/ngSwipe.js"></script>@
+#* @<script src="components/angular-gesture/ngMobile/directive/ngDrag.js"></script>@
 # OR
 #* @<script src="components/angular-gesture/mobile.min.js"></script>@
 
+
+h2. Supports the following gestures out of the box
+
+* hold
+* click (tap)
+* double click (double tap)
+* swipe (up, down, left and right)
+* drag ( "demo":http://jsfiddle.net/ew7Ta/1/ )
+
+Inspired by "Hammer.js":https://github.com/EightMedia/hammer.js and "AngularJS Mobile":https://github.com/angular/angular.js/tree/master/src/ngMobile (API compatible)
