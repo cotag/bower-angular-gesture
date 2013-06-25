@@ -62,6 +62,8 @@
               $timeout.cancel(self.allow_click); // Ensures only one click is approved
               self.allow_click = true;
             }
+
+            return false;
           });
         },
         handler: function(ev, inst) {
