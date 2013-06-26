@@ -500,69 +500,69 @@
 
 
           detect = function(event, eventType, instance, pointersEnding) {
-            var i, touches;
+            var i,
+              touches;
+
             pointersEnding = pointersEnding || [];  // may be undefined
+            touches = [];
 
-            if (instance.enabled) {
-              touches = [];
+            // Get the touches related to this element
+            angular.forEach(eventPointers[instance], function(value) {
+              this.push(value);
+            }, touches);
 
-              // Get the touches related to this element
-              angular.forEach(eventPointers[instance], function(value) {
-                this.push(value);
-              }, touches);
-
-              // Make this a move event if there are still fingers on the screen
-              if (eventType === $mobileUtils.EVENT_END && (pointersEnding.length - instance.pointersCount) > 0) {
-                eventType = $mobileUtils.EVENT_MOVE;
-              }
-
-              instance.detect({
-                center    : $mobileUtils.getCenter(touches),
-                timeStamp   : Date.now(),
-                target    : event.target,
-                touches   : touches,
-                eventType   : eventType,
-                srcEvent  : event,
-
-                /**
-                 * prevent the browser default actions
-                 * mostly used to disable scrolling of the browser
-                 */
-                preventDefault: function() {
-                  if (this.srcEvent.preventManipulation) {
-                    this.srcEvent.preventManipulation();
-                  }
-
-                  if (this.srcEvent.preventDefault) {
-                    this.srcEvent.preventDefault();
-                  } else {
-                    this.srcEvent.returnValue = false;  // IE8
-                  }
-                },
-
-                /**
-                 * stop bubbling the event up to its parents
-                 */
-                stopPropagation: function() {
-                  this.srcEvent.propagation_stop_sig = true;
-
-                  if (this.srcEvent.stopPropagation) {
-                    this.srcEvent.stopPropagation();
-                  } else {
-                    this.srcEvent.cancelBubble = true;  // IE8
-                  }
-                },
-
-                /**
-                 * immediately stop gesture detection
-                 * might be useful after a swipe was detected
-                 * @return {*}
-                 */
-                stopDetect: function() {
-                  return instance.stopDetect();
-                }
-              });
+            // Make this a move event if there are still fingers on the screen
+            if (eventType === $mobileUtils.EVENT_END && (pointersEnding.length - instance.pointersCount) > 0) {
+              eventType = $mobileUtils.EVENT_MOVE;
             }
+
+            instance.detect({
+              center    : $mobileUtils.getCenter(touches),
+              timeStamp   : Date.now(),
+              target    : event.target,
+              touches   : touches,
+              eventType   : eventType,
+              srcEvent  : event,
+
+              /**
+               * prevent the browser default actions
+               * mostly used to disable scrolling of the browser
+               */
+              preventDefault: function() {
+                if (this.srcEvent.preventManipulation) {
+                  this.srcEvent.preventManipulation();
+                }
+
+                if (this.srcEvent.preventDefault) {
+                  this.srcEvent.preventDefault();
+                } else {
+                  this.srcEvent.returnValue = false;  // IE8
+                }
+              },
+
+              /**
+               * stop bubbling the event up to its parents
+               */
+              stopPropagation: function() {
+                this.srcEvent.propagation_stop_sig = true;
+
+                if (this.srcEvent.stopPropagation) {
+                  this.srcEvent.stopPropagation();
+                } else {
+                  this.srcEvent.cancelBubble = true;  // IE8
+                }
+              },
+
+              /**
+               * immediately stop gesture detection
+               * might be useful after a swipe was detected
+               * @return {*}
+               */
+              stopDetect: function() {
+                return instance.stopDetect();
+              }
+            });
+
 
             // on the end we reset everything
             if (eventType === $mobileUtils.EVENT_END) {
@@ -601,36 +601,70 @@
                 p,
                 pointerObj,
                 instance,
-                instances,
+                instances = [],
                 captureProcessed,
                 pointersEnding = {};
 
               if (eventType === $mobileUtils.EVENT_START) {
 
+
+                // protect against failing to get an up or end on non-pointer based browsers
+                //
+                // as we can capture pointer events on elements being monitored for angulars $destroy event
+                // we will never lose track of pointers. However touchends will not fire if the capturing
+                // element is removed and 
+                if (!$mobileUtils.HAS_POINTEREVENTS) {
+                  if (event.touches) {  // touches we loop through making sure they exist
+
+                    instance = {};
+                    for (i = 0; i < event.touches.length; i += 1) {
+                      instance[event.touches[i].identifier] = true;
+                    }
+                    for (i = 0; i < event.touches.length; i += 1) {
+                      instance[event.changedTouches[i].identifier] = true;
+                    }
+
+                    angular.forEach(pointerAllocation, function(value, key) {
+                      if (!instance.hasOwnProperty(key)) {
+                        instances.push(key);
+                      }
+                    });
+
+                    for (p = 0; p < instances.length; p += 1) {
+                      instance = pointerAllocation[instances[p]];
+                      for (i = 0; i < instance.length; i += 1) {
+                        instance[i].stopDetect();
+                      }
+                    }
+
+                    // reset instances
+                    instances = [];
+                    instance = undefined;
+                  } else if (pointerAllocation[1]) {             // this is a mouse
+                    instance = pointerAllocation[pointerObj.identifier];
+                    for (i = 0; i < instance.length; i += 1) {
+                      instance[i].stopDetect();
+                    }
+                  }
+                }
+
+
                 // run up the tree looking for mobile elements
-                instances = [];
                 i = element;
                 do {
                   instance = i.data('__$mobile.config__');
-                  if (instance && instance.enabled) {
+                  if (instance) {
                     instances.push(instance);
                   }
                   i = i.parent();
                 } while (i[0]);
+
 
                 // loop through the pointers
                 for (p = 0; p < pointerList.length; p += 1) {
                   captureProcessed = false;
                   pointerObj = pointerList[p];
                   pointerObj.identifier = (pointerObj.identifier !== undefined) ? pointerObj.identifier : (pointerObj.pointerId !== undefined) ? pointerObj.pointerId : 1;
-
-                  // protect against failing to get an up or end on this pointer
-                  if (pointerAllocation[pointerObj.identifier]) {
-                    instance = pointerAllocation[pointerObj.identifier];
-                    for (i = 0; i < instance.length; i += 1) {
-                      instance[i].stopDetect();
-                    }
-                  }
 
                   // reset the current id
                   pointerAllocation[pointerObj.identifier] = [];
@@ -684,7 +718,7 @@
                   if (pointerAllocation[pointerObj.identifier]) {
                     // NOTE:: we could attach pointers to elements if a user has missed the target element for the initial touch?
                     //  Might make this a configuration option in the future: gobble_pointers?
-                    instances = pointerAllocation[pointerObj.identifier];
+                    instances.push.apply(instances, pointerAllocation[pointerObj.identifier]);
 
                     // Check for IE8 to add pageX and pageY (same as above) ----------------------------^
                     if (!$window.document.addEventListener) {
@@ -718,11 +752,13 @@
               }
 
               // Detect gestures
-              if (instances) {
+              if (instances.length > 0) {
                 for (i = 0; i < instances.length; i += 1) {
-                  detect(event, eventType, instances[i], pointersEnding[instances[i]]);
-                  if (event.propagation_stop_sig) {
-                    break;
+                  if (!event.propagation_stop_sig) {
+                    detect(event, eventType, instances[i], pointersEnding[instances[i]]);
+                  } else {
+                    // de-allocate pointers to the remaining instances
+                    instances[i].stopDetect();
                   }
                 }
               }
@@ -898,13 +934,15 @@
                       name    : ''          // current gesture we're in/detected, can be 'tap', 'hold' etc
                     };
                   } else if (instance.stopped) {
+                    instance.stopDetect();  // just in case
                     return;
                   }
 
                   // extend event data with calculations about scale, distance etc
                   eventData = instance.extendEventData(eventData);
 
-                  var g = 0, len,
+                  var g = 0,
+                    len,
                     gesture;
 
                   // call gesture handlers
@@ -961,19 +999,19 @@
                         delete pointerAllocation[pointerId];
                       }
                     }
+                  }
 
-                    // stopped!
-                    instance.stopped = true;
-                    instance.pointersCount = 0;
+                  // stopped!
+                  instance.stopped = true;
+                  instance.pointersCount = 0;
 
-                    // clone current data to the store as the previous gesture
-                    // used for the double tap gesture, since this is an other gesture detect session
-                    if (instance.current) {
-                      instance.previous = angular.extend({}, instance.current);
+                  // clone current data to the store as the previous gesture
+                  // used for the double tap gesture, since this is an other gesture detect session
+                  if (instance.current) {
+                    instance.previous = angular.extend({}, instance.current);
 
-                      // reset the current
-                      instance.current = null;
-                    }
+                    // reset the current
+                    instance.current = null;
                   }
                 },
 
@@ -994,7 +1032,6 @@
                   return instance;
                 },
 
-                enabled: true,       // Can prevent elements triggering gestures
                 previous: undefined, // The previous gesture on this element
                 current: undefined,  // Are we currently gesturing
 
@@ -1029,7 +1066,6 @@
               // The events are no longer required for the current element
               element.scope().$on('$destroy', function() {
                 instance.stopDetect();
-                instance.enabled = false;
               });
 
               // start detection on touchstart

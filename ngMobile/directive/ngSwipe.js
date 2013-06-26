@@ -89,11 +89,11 @@
 
             // Check the swipe meets the requirements
             if (totalX > totalY) {
-              if (!(totalY <= inst.options.swipeMaxOrthogonality && totalX >  inst.options.swipeMinDistance && totalY / totalX < inst.options.swipeXyRatio && ev.velocityX >= inst.options.swipeMinVelocity)) {
+              if (!(totalY <= inst.options.swipeMaxOrthogonality && totalX > inst.options.swipeMinDistance && totalY / totalX < inst.options.swipeXyRatio && ev.velocityX >= inst.options.swipeMinVelocity)) {
                 return;
               }
             } else {
-              if (!(totalX <= inst.options.swipeMaxOrthogonality && totalY >  inst.options.swipeMinDistance && totalX / totalY < inst.options.swipeXyRatio && ev.velocityY >= inst.options.swipeMinVelocity)) {
+              if (!(totalX <= inst.options.swipeMaxOrthogonality && totalY > (inst.options.swipeMinDistance / 2) && totalX / totalY < inst.options.swipeXyRatio && ev.velocityY >= inst.options.swipeMinVelocity)) {
                 return;
               }
             }
