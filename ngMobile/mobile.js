@@ -620,7 +620,7 @@
                     for (i = 0; i < event.touches.length; i += 1) {
                       instance[event.touches[i].identifier] = true;
                     }
-                    for (i = 0; i < event.touches.length; i += 1) {
+                    for (i = 0; i < event.changedTouches.length; i += 1) {
                       instance[event.changedTouches[i].identifier] = true;
                     }
 
