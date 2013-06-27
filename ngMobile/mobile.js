@@ -641,7 +641,7 @@
                     instances = [];
                     instance = undefined;
                   } else if (pointerAllocation[1]) {             // this is a mouse
-                    instance = pointerAllocation[pointerObj.identifier];
+                    instance = pointerAllocation[1];
                     for (i = 0; i < instance.length; i += 1) {
                       instance[i].stopDetect();
                     }
