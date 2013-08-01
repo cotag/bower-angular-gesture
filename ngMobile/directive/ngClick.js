@@ -63,6 +63,8 @@
               self.allow_click = true;
             }
 
+            ev.preventDefault();
+            ev.stopPropagation();
             return false;
           });
         },
