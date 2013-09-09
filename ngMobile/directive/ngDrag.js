@@ -12,6 +12,7 @@
           dragAdjustStart : true,
           // prevent default browser behavior when dragging occurs
           // when you are using the drag gesture, it is a good practice to set this true
+          dragDirections: false,
           dragBlock   : true,
           preventGhostClicks: true  // shared setting between ngClick and Drag
         },
@@ -38,6 +39,11 @@
             // when the distance we moved is too small we skip this gesture
             // or we can be already in dragging
             if (ev.distance < inst.options.dragMinDistance && inst.current.name !== this.name) {
+              return;
+            }
+
+            // check if a direction is specified 
+            if (inst.options.dragDirections && inst.options.dragDirections.indexOf(ev.direction) === -1) {
               return;
             }
 
