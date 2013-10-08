@@ -156,17 +156,85 @@
                 */
                 isVertical: function (direction) {
                     return (direction === this.DIRECTION_UP || direction === this.DIRECTION_DOWN);
+                },
+
+                /**
+                * stop browser default behavior with css props
+                * @param   {HtmlElement}   element
+                * @param   {Object}    css_props
+                */
+                stopDefaultBrowserBehavior: function stopDefaultBrowserBehavior(element, css_props) {
+                    var prop,
+                        vendors = ['webkit', 'khtml', 'moz', 'ms', 'o', ''],
+                        i,
+                        p;
+
+                    if (!css_props || !element.style) {
+                        return;
+                    }
+
+                    // with css properties for modern browsers
+                    for (i = 0; i < vendors.length; i += 1) {
+                        for (p in css_props) {
+                            if (css_props.hasOwnProperty(p)) {
+                                prop = p;
+
+                                // vender prefix at the property
+                                if (vendors[i]) {
+                                    prop = vendors[i] + prop.substring(0, 1).toUpperCase() + prop.substring(1);
+                                }
+
+                                // set the style
+                                element.style[prop] = css_props[p];
+                            }
+                        }
+                    }
+
+                    // also the disable onselectstart
+                    if (css_props.userSelect === 'none') {
+                        element.onselectstart = function() {
+                            return false;
+                        };
+
+                        // NOTE:: Only seems to have any effect on IE8 with jquery
+                        // Behaves normally for all other browsers, jquery or not.
+                        element.ondragstart = function() {
+                            return false;
+                        };
+                    }
                 }
             };
         }])
 
         .provider('$gesture', function() {
 
-            var defaults = {},
-                defaultBrowserBehavior = {},
+            var defaults = {
+                    setBrowserBehaviors: true
+                },
+                defaultBrowserBehavior = {
+                    // this also triggers onselectstart=false for IE
+                    userSelect: 'none',
+                    // this makes the element blocking in IE10 >, you could experiment with the value
+                    // see for more options this issue; https://github.com/EightMedia/this.js/issues/241
+                    touchAction: 'none',
+                    touchCallout: 'none',
+                    contentZooming: 'none',
+                    userDrag: 'none',
+                    tapHighlightColor: 'rgba(0,0,0,0)'
+                },
                 EVENT_START = 'pointerdown',
                 EVENT_MOVE = 'pointermove',
                 EVENT_END = 'pointerup pointercancel lostpointercapture';
+
+
+            this.setGestureDefaults = function(settings) {
+                angular.extend(defaults, settings);
+            };
+
+            this.setDefaultBrowserBehavior = function(settings) {
+                angular.extend(defaultBrowserBehavior, settings);
+            };
+
 
             this.$get = ['$window', '$document', '$timeout', '$ngUtils', function ($window, $document, $timeout, $utils) {
                 var gestureTypes = {},      // Gestures registered with $mobile
@@ -657,6 +725,9 @@
                                     }
                                 }
                                 $utils.stopDefaultBrowserBehavior(element[0], instance.browserBehaviors);
+                                element.attr('touch-action', instance.options.touchAction || defaultBrowserBehavior.touchAction);
+                            } else {
+                                element.attr('touch-action', defaultBrowserBehavior.touchAction);
                             }
 
                             // The events are no longer required for the current element
