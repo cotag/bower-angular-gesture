@@ -12,6 +12,13 @@
                 DIRECTION_LEFT: 3,
                 DIRECTION_RIGHT: 4,
 
+                DIRECTION_NAME: {
+                    1: 'up',
+                    2: 'down',
+                    3: 'left',
+                    4: 'right'
+                },
+
                 // simplified event types
                 EVENT_START: 1,
                 EVENT_MOVE: 2,
@@ -570,7 +577,7 @@
 
                                         distance    : $utils.getDistance(startEv.center, ev.center),
                                         angle         : $utils.getAngle(startEv.center, ev.center),
-                                        direction     : $utils.getDirection(startEv.center, ev.center),
+                                        direction     : $utils.DIRECTION_NAME[$utils.getDirection(startEv.center, ev.center)],
 
                                         scale         : $utils.getScale(startEv.touches, ev.touches),
                                         rotation    : $utils.getRotation(startEv.touches, ev.touches),
