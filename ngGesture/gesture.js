@@ -221,9 +221,6 @@
                 defaultBrowserBehavior = {
                     // this also triggers onselectstart=false for IE
                     userSelect: 'none',
-                    // this makes the element blocking in IE10 >, you could experiment with the value
-                    // see for more options this issue; https://github.com/EightMedia/this.js/issues/241
-                    touchAction: 'none',
                     touchCallout: 'none',
                     contentZooming: 'none',
                     userDrag: 'none',
@@ -732,9 +729,13 @@
                                     }
                                 }
                                 $utils.stopDefaultBrowserBehavior(element[0], instance.browserBehaviors);
-                                element.attr('touch-action', instance.options.touchAction || defaultBrowserBehavior.touchAction);
+                                if (element.attr('touch-action') === undefined) {
+                                    element.attr('touch-action', instance.options.touchAction || 'none');
+                                }
                             } else {
-                                element.attr('touch-action', defaultBrowserBehavior.touchAction);
+                                if (element.attr('touch-action') === undefined) {
+                                    element.attr('touch-action', 'none');
+                                }
                             }
 
                             // The events are no longer required for the current element
