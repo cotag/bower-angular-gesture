@@ -35,7 +35,8 @@
                     tapAlways           : true,     // tap on double tap (w3c way for click)
                     doubletapTolerance  : 20,       // allow for a bit of human error
                     doubletapInterval   : 400,
-                    touchActiveClass    : 'ng-click-active'
+                    touchActiveClass    : 'ng-click-active',
+                    touchAction         : 'auto'    // don't prevent scrolling
                 },
                 setup: function(el, inst) {
                     var self = this;

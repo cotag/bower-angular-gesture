@@ -19,8 +19,9 @@
                     holdMaxPointers     : 1,
                     holdDuration        : 751,        // 750ms, or less, is a tap
                     holdMoveTolerance   : 10,         // Doesn't overlap with drags move tolerance and is equal to click
-                    holdAcceptRightClick: true,        // Allow users with mice to right click instead of holding
-                    touchActiveClass    : 'ng-click-active'
+                    holdAcceptRightClick: true,       // Allow users with mice to right click instead of holding
+                    touchActiveClass    : 'ng-click-active',
+                    touchAction         : 'auto'      // don't prevent scrolling
                 },
                 setup: function(el, inst) {
                     // Use the setup function to bind to clicks
