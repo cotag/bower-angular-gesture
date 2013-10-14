@@ -387,8 +387,20 @@
                         
                         // We can ignore events from this pointer now
                         element.unbind(EVENT_MOVE, moveEvent);
-                        element.unbind(EVENT_END, endEvent);
-                        element[0].releasePointerCapture(event.pointerId);
+                        element.unbind('pointerup', endEvent);
+                        element.unbind('pointercancel', endEvent);
+                        element.unbind('lostpointercapture', endEvent);
+                        if (event.type === 'pointerup') {
+                            element[0].releasePointerCapture(event.pointerId);
+                        } else {
+                            // Avoids a possible error in the polyfill
+                            // A click event that cancels a captured pointer generates a
+                            // start event that never has an end.
+                            element.unbind(EVENT_START, startEvent);
+                            $timeout(function () {
+                                element.bind(EVENT_START, startEvent);
+                            }, 0, false);
+                        }
 
                         tryDetect(event, $utils.EVENT_END, instances);
                     },
