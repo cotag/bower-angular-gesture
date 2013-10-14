@@ -384,6 +384,11 @@
                                 eventPointers[instance][event.pointerId] = event;
                             }
                         }
+                        
+                        // We can ignore events from this pointer now
+                        element.unbind(EVENT_MOVE, moveEvent);
+                        element.unbind(EVENT_END, endEvent);
+                        element[0].releasePointerCapture(event.pointerId);
 
                         tryDetect(event, $utils.EVENT_END, instances);
                     },
