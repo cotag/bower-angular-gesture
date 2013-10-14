@@ -19,43 +19,19 @@
                     holdMaxPointers     : 1,
                     holdDuration        : 751,        // 750ms, or less, is a tap
                     holdMoveTolerance   : 10,         // Doesn't overlap with drags move tolerance and is equal to click
-                    holdAcceptRightClick: true,       // Allow users with mice to right click instead of holding
-                    touchActiveClass    : 'ng-click-active',
-                    touchAction         : 'auto'      // don't prevent scrolling
+                    holdAcceptRightClick: true,        // Allow users with mice to right click instead of holding
+                    touchActiveClass    : 'ng-click-active'
                 },
                 setup: function(el, inst) {
-                    // Use the setup function to bind to clicks
-                    // right clicks are ignored by $gesture
+                    // Use the setup function to prevent context menus
                     if (inst.options.holdAcceptRightClick) {
-                        if ($window.document.addEventListener) {
-                            el.bind('click contextmenu', function(event) {
-                                event = event.originalEvent || event;
-                                // mouse events use which, pointer events use button
-                                if (event.which === 3 || event.button === 2) {
-                                    inst.trigger('hold', event);
-                                    event.preventDefault(); // Prevent the context menu
-                                }
-                            });
-                        } else {    // IE 8 or lower
-                            var button, allow_event = false;
-                            el.bind('mouseup', function(event) {    // IE doesn't have button values on mouse up
-                                event = event.originalEvent || event;
-                                button = event.button;
-                                allow_event = $window.setTimeout(function() {
-                                    allow_event = false;
-                                }, 0);
-                            });
-                            el.bind('click contextmenu', function(event) {        // Check the last button value
-                                event = event.originalEvent || event;
-                                if (button === 2 && allow_event !== false) {
-                                    $window.clearTimeout(allow_event);     // make sure only one right click is approved
-                                    allow_event = false;
-
-                                    inst.trigger('hold', event);
-                                    event.returnValue = false;            // Prevent the context menu
-                                }
-                            });
-                        }
+                        el.bind('contextmenu', function(event) {
+                            event = event.originalEvent || event;
+                            // mouse events use which, pointer events use button
+                            if (event.button === 2) {
+                                event.preventDefault(); // Prevent the context menu
+                            }
+                        });
                     }
                 },
                 handler: function(ev, inst) {
@@ -63,7 +39,10 @@
 
                     switch (ev.eventType) {
                     case $gesture.utils.EVENT_START:
-                        if (ev.touches.length <= inst.options.holdMaxPointers) {
+                        if (inst.options.holdAcceptRightClick === true && ev.srcEvent.button === 2) {
+                            inst.current.name = self.name;        // Trigger on right click
+                            inst.trigger(self.name, ev);
+                        } else if (ev.touches.length <= inst.options.holdMaxPointers) {
                             self.valid = $timeout(function() {
                                 inst.current.name = self.name;        // Set the event and trigger if
                                 inst.trigger(self.name, ev);            // we have been holding long

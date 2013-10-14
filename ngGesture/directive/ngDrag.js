@@ -30,6 +30,10 @@
 
                     switch (ev.eventType) {
                     case $gesture.utils.EVENT_START:
+                        if (ev.srcEvent.button !== 0) {
+                            inst.stopDetect();
+                            break;
+                        }
                         this.triggered = false;
                         break;
 

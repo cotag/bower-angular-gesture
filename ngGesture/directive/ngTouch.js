@@ -21,6 +21,11 @@
                     touchActiveClass: 'ng-click-active'
                 },
                 handler: function(ev, inst) {
+                    if (ev.srcEvent.button !== 0) {
+                        inst.stopDetect();
+                        return;
+                    }
+
                     if (inst.options.touchPreventDefault) {
                         ev.preventDefault();
                     }
