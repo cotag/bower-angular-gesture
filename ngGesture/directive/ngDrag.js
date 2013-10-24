@@ -64,7 +64,7 @@
 
                         // first time, trigger dragstart event
                         if (!this.triggered) {
-                            inst.trigger(this.name + 'start', ev);
+                            inst.trigger(this.name + 'begin', ev);
                             this.triggered = true;
                         }
 
@@ -80,7 +80,7 @@
                     case $gesture.utils.EVENT_END:
                         // trigger dragend
                         if (this.triggered) {
-                            inst.trigger(this.name + 'end', ev);
+                            inst.trigger(this.name + 'stop', ev);
                         }
 
                         this.triggered = false;
@@ -121,7 +121,7 @@
                         dragEnd = $parse(attrs.dragStop);
                     }
 
-                    $gesture.gestureOn(element, 'drag', $gesture.extractSettings(scope, attrs)).on('dragstart', function(event) {
+                    $gesture.gestureOn(element, 'drag', $gesture.extractSettings(scope, attrs)).on('dragbegin', function(event) {
                         x0 = event.center.pageX - element[0].offsetLeft;
                         y0 = event.center.pageY - element[0].offsetTop;
 
@@ -158,7 +158,7 @@
                                 onDrag(scope, {$event: event, $element: element, $position: props});
                             });
                         }
-                    }).on('dragend', function(event) {
+                    }).on('dragstop', function(event) {
                         if (dragEnd) {
                             scope.$apply(function() {
                                 dragEnd(scope, {$event: event, $element: element, $position: props});
