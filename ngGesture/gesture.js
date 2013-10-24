@@ -228,7 +228,8 @@
                 },
                 EVENT_START = 'pointerdown',
                 EVENT_MOVE = 'pointermove',
-                EVENT_END = 'pointerup pointercancel lostpointercapture';
+                EVENT_END = 'pointerup',
+                EVENT_CANCEL = 'pointercancel lostpointercapture';
 
 
             this.setGestureDefaults = function(settings) {
@@ -386,23 +387,53 @@
                         }
                         
                         // We can ignore events from this pointer now
-                        element.unbind(EVENT_MOVE, moveEvent);
-                        element.unbind('pointerup', endEvent);
-                        element.unbind('pointercancel', endEvent);
-                        element.unbind('lostpointercapture', endEvent);
-                        if (event.type === 'pointerup') {
-                            element[0].releasePointerCapture(event.pointerId);
-                        } else {
-                            // Avoids a possible error in the polyfill
-                            // A click event that cancels a captured pointer generates a
-                            // start event that never has an end.
-                            element.unbind(EVENT_START, startEvent);
-                            $timeout(function () {
-                                element.bind(EVENT_START, startEvent);
-                            }, 0, false);
-                        }
+                        element.off(EVENT_MOVE, moveEvent);
+                        element.off('pointerup', endEvent);
+                        element.off('pointercancel', cancelEvent);
+                        element.off('lostpointercapture', cancelEvent);
+                        element[0].releasePointerCapture(event.pointerId);
 
                         tryDetect(event, $utils.EVENT_END, instances);
+                    },
+
+                    cancelEvent = function (event) {
+                        event = event.originalEvent || event; // in case of jQuery
+
+                        var element = angular.element(this),
+                            i,
+                            instance,
+                            instances = [];
+
+                        if (pointerAllocation[event.pointerId]) {
+                            // clone the instances array
+                            instances.push.apply(instances, pointerAllocation[event.pointerId]);
+
+                            for (i = 0; i < instances.length; i += 1) {
+                                instance = instances[i];
+
+                                // Update pointer
+                                if (eventPointers[instance].length > 1) {
+                                    delete eventPointers[instance][event.pointerId];
+                                } else {
+                                    instance.stopDetect();
+                                }
+                            }
+
+                            delete pointerAllocation[event.pointerId];
+                        }
+                        
+                        // We can ignore events from this pointer now
+                        element.off(EVENT_MOVE, moveEvent);
+                        element.off('pointerup', endEvent);
+                        element.off('pointercancel', cancelEvent);
+                        element.off('lostpointercapture', cancelEvent);
+                        // Avoids a possible error in the polyfill
+                        // A click event that cancels a captured pointer generates a
+                        // start event that never has an end.
+                        element.off(EVENT_START, startEvent);
+                        $timeout(function () {
+                            element.on(EVENT_START, startEvent);
+                        }, 0, false);
                     },
 
                     startEvent = function (event) {
@@ -465,8 +496,9 @@
                                     }
 
                                     // Listen for further events on this element
-                                    element.bind(EVENT_MOVE, moveEvent);
-                                    element.bind(EVENT_END, endEvent);
+                                    element.on(EVENT_MOVE, moveEvent);
+                                    element.on(EVENT_END, endEvent);
+                                    element.on(EVENT_CANCEL, cancelEvent);
                                 }
                             }
                         }
@@ -527,12 +559,12 @@
 
                                 /**
                                  * Provide a handler for an event
-                                 * I would have liked to use angulars.bind and triggered real events
+                                 * I would have liked to use angulars.on and triggered real events
                                  * to simlify creating complex widgets via delegation or for stats etc
                                  * however I couldn't do this and support IE8 at the same time so I
                                  * used a similar interface to JQLite for when IE8 support is dropped
                                  */
-                                bind: function(event, handler) {
+                                on: function(event, handler) {
                                     instance.handlers[event] = instance.handlers[event] || [];
                                     instance.handlers[event].push(handler);
                                     return instance;
@@ -541,7 +573,7 @@
                                 /**
                                  * Remove a handler for an event
                                  */
-                                unbind: function(event, handler) {
+                                off: function(event, handler) {
                                     if (handler === undefined) {
                                         delete instance.handlers[event];
                                     } else {
@@ -761,7 +793,7 @@
                             });
 
                             // start detection on interaction
-                            element.bind(EVENT_START, startEvent);
+                            element.on(EVENT_START, startEvent);
                         } else if (options) {
                             // This is not the first call to gestureOn
                             angular.extend(instance.options, options);

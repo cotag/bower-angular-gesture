@@ -1,7 +1,9 @@
 (function(angular) {
     'use strict';
 
-    var emptyHandler = function () {};
+    var emptyHandler = function () {
+        return false;
+    };
 
     angular.module('ngGesture')
 
@@ -25,6 +27,11 @@
          *    Adds bindings for `tap` and `doubletap` to $gesture
          */
         .factory('$gestureClick', ['$window', '$timeout', '$gesture', function($window, $timeout, $gesture) {
+            var cancelClick = false;
+            angular.element($window).on('scroll', function () {
+                cancelClick = true;
+            });
+
             $gesture.register({
                 name: 'tap',
                 index: 100,
@@ -46,7 +53,7 @@
                     //  e.g. a hold will cancel a click event however if hold isn't applied to the element
                     //       and we are on a desktop browser then this will trigger a click event
                     self.allow_click = true;
-                    el.bind('click', function (ev) {
+                    el.on('click', function (ev) {
                         if (self.allow_click !== true) {
                             $timeout.cancel(self.allow_click); // Ensures only one click is approved
                             self.allow_click = true;
@@ -67,6 +74,7 @@
                             break;
                         }
                         this.valid = true;
+                        cancelClick = false;
                         break;
                     case $gesture.utils.EVENT_MOVE:
                         if (ev.distance > inst.options.tapMoveTolerance) {
@@ -79,7 +87,7 @@
 
                         // when the touch time is higher then the max touch time
                         // or when the moving distance is too much
-                        if (!this.valid || ev.deltaTime > inst.options.tapMaxDuration || ev.distance > inst.options.tapMoveTolerance) {
+                        if (!this.valid || cancelClick || ev.deltaTime > inst.options.tapMaxDuration || ev.distance > inst.options.tapMoveTolerance) {
                             if (inst.current.name !== '') {
                                 // Prevent click if another gesture is occurring
                                 // Otherwise run with browser default behavior
@@ -165,7 +173,7 @@
                 // something else nearby.
                 element[0].onclick = emptyHandler;
 
-                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).bind('tap', function(eventdata) {
+                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).on('tap', function(eventdata) {
                     scope.$apply(function() {
                         clickHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -205,7 +213,7 @@
                 // something else nearby.
                 element[0].onclick = emptyHandler;
 
-                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).bind('doubletap', function(eventdata) {
+                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).on('doubletap', function(eventdata) {
                     scope.$apply(function() {
                         clickHandler(scope, {$event: eventdata, $element: element});
                     });

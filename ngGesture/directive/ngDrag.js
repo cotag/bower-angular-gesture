@@ -121,12 +121,12 @@
                         dragEnd = $parse(attrs.dragStop);
                     }
 
-                    $gesture.gestureOn(element, 'drag', $gesture.extractSettings(scope, attrs)).bind('dragstart', function(event) {
+                    $gesture.gestureOn(element, 'drag', $gesture.extractSettings(scope, attrs)).on('dragstart', function(event) {
                         x0 = event.center.pageX - element[0].offsetLeft;
                         y0 = event.center.pageY - element[0].offsetTop;
 
                         start = true;
-                    }).bind('drag', function(event) {
+                    }).on('drag', function(event) {
                         props = {};
 
                         x = event.center.pageX - x0;
@@ -158,7 +158,7 @@
                                 onDrag(scope, {$event: event, $element: element, $position: props});
                             });
                         }
-                    }).bind('dragend', function(event) {
+                    }).on('dragend', function(event) {
                         if (dragEnd) {
                             scope.$apply(function() {
                                 dragEnd(scope, {$event: event, $element: element, $position: props});

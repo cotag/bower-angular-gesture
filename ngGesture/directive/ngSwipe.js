@@ -143,7 +143,7 @@
             return function(scope, element, attr) {
                 var swipeHandler = $parse(attr.ngSwipe);
 
-                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).bind('swipe', function(eventdata) {
+                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).on('swipe', function(eventdata) {
                     scope.$apply(function() {
                         swipeHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -182,7 +182,7 @@
             return function(scope, element, attr) {
                 var swipeHandler = $parse(attr.ngSwipeRight);
 
-                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).bind('swiperight', function(eventdata) {
+                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).on('swiperight', function(eventdata) {
                     scope.$apply(function() {
                         swipeHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -221,7 +221,7 @@
             return function(scope, element, attr) {
                 var swipeHandler = $parse(attr.ngSwipeLeft);
 
-                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).bind('swipeleft', function(eventdata) {
+                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).on('swipeleft', function(eventdata) {
                     scope.$apply(function() {
                         swipeHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -259,7 +259,7 @@
             return function(scope, element, attr) {
                 var swipeHandler = $parse(attr.ngSwipeUp);
 
-                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).bind('swipeup', function(eventdata) {
+                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).on('swipeup', function(eventdata) {
                     scope.$apply(function() {
                         swipeHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -297,7 +297,7 @@
             return function(scope, element, attr) {
                 var swipeHandler = $parse(attr.ngSwipeDown);
 
-                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).bind('swipedown', function(eventdata) {
+                $gesture.gestureOn(element, 'swipe', $gesture.extractSettings(scope, attr)).on('swipedown', function(eventdata) {
                     scope.$apply(function() {
                         swipeHandler(scope, {$event: eventdata, $element: element});
                     });

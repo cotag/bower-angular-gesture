@@ -90,7 +90,7 @@
             return function(scope, element, attr) {
                 var touchHandler = $parse(attr.ngTouch);
 
-                $gesture.gestureOn(element, 'touch', $gesture.extractSettings(scope, attr)).bind('touch', function(eventdata) {
+                $gesture.gestureOn(element, 'touch', $gesture.extractSettings(scope, attr)).on('touch', function(eventdata) {
                     scope.$apply(function() {
                         touchHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -125,7 +125,7 @@
             return function(scope, element, attr) {
                 var moveHandler = $parse(attr.ngMove);
 
-                $gesture.gestureOn(element, 'move', $gesture.extractSettings(scope, attr)).bind('move', function(eventdata) {
+                $gesture.gestureOn(element, 'move', $gesture.extractSettings(scope, attr)).on('move', function(eventdata) {
                     scope.$apply(function() {
                         moveHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -160,7 +160,7 @@
             return function(scope, element, attr) {
                 var releaseHandler = $parse(attr.ngRelease);
 
-                $gesture.gestureOn(element, 'release', $gesture.extractSettings(scope, attr)).bind('release', function(eventdata) {
+                $gesture.gestureOn(element, 'release', $gesture.extractSettings(scope, attr)).on('release', function(eventdata) {
                     scope.$apply(function() {
                         releaseHandler(scope, {$event: eventdata, $element: element});
                     });

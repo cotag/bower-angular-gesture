@@ -25,7 +25,7 @@
                 setup: function(el, inst) {
                     // Use the setup function to prevent context menus
                     if (inst.options.holdAcceptRightClick) {
-                        el.bind('contextmenu', function(event) {
+                        el.on('contextmenu', function(event) {
                             event = event.originalEvent || event;
                             // mouse events use which, pointer events use button
                             if (event.button === 2) {
@@ -93,10 +93,16 @@
                 </doc:example>
          */
         .directive('ngHold', ['$parse', '$gestureHold', function($parse, $gesture) {
+            var emptyHandler = function () {
+                return false;
+            };
+
             return function(scope, element, attr) {
                 var holdHandler = $parse(attr.ngHold);
 
-                $gesture.gestureOn(element, 'hold', $gesture.extractSettings(scope, attr)).bind('hold', function(eventdata) {
+                element[0].onclick = emptyHandler;
+
+                $gesture.gestureOn(element, 'hold', $gesture.extractSettings(scope, attr)).on('hold', function(eventdata) {
                     scope.$apply(function() {
                         holdHandler(scope, {$event: eventdata, $element: element});
                     });
