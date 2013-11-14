@@ -25,8 +25,40 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+if (typeof WeakMap === 'undefined') {
+  (function() {
+    var defineProperty = Object.defineProperty;
+    var counter = Date.now() % 1e9;
+
+    var WeakMap = function() {
+      this.name = '__st' + (Math.random() * 1e9 >>> 0) + (counter++ + '__');
+    };
+
+    WeakMap.prototype = {
+      set: function(key, value) {
+        var entry = key[this.name];
+        if (entry && entry[0] === key)
+          entry[1] = value;
+        else
+          defineProperty(key, this.name, {value: [key, value], writable: true});
+      },
+      get: function(key) {
+        var entry;
+        return (entry = key[this.name]) && entry[0] === key ?
+            entry[1] : undefined;
+      },
+      delete: function(key) {
+        this.set(key, undefined);
+      }
+    };
+
+    window.WeakMap = WeakMap;
+  })();
+}
+
 (function(scope) {
   scope = scope || {};
+  scope.external = scope.external || {};
   var target = {
     shadow: function(inEl) {
       if (inEl) {
@@ -98,7 +130,7 @@
       if (!s.elementFromPoint(x, y)) {
         s = document;
       }
-      return this.searchRoot(document, x, y);
+      return this.searchRoot(s, x, y);
     }
   };
   scope.targetFinding = target;
@@ -165,6 +197,40 @@
   } catch(e) {
   }
 
+  var MOUSE_PROPS = [
+    'bubbles',
+    'cancelable',
+    'view',
+    'detail',
+    'screenX',
+    'screenY',
+    'clientX',
+    'clientY',
+    'ctrlKey',
+    'altKey',
+    'shiftKey',
+    'metaKey',
+    'button',
+    'relatedTarget',
+  ];
+
+  var MOUSE_DEFAULTS = [
+    false,
+    false,
+    null,
+    null,
+    0,
+    0,
+    0,
+    0,
+    false,
+    false,
+    false,
+    false,
+    0,
+    null
+  ];
+
   function PointerEvent(inType, inDict) {
     inDict = inDict || {};
     // According to the w3c spec,
@@ -203,29 +269,13 @@
       e = new MouseEvent(inType, inDict);
     } else {
       e = document.createEvent('MouseEvent');
-      // import values from the given dictionary
-      var props = {
-        bubbles: false,
-        cancelable: false,
-        view: null,
-        detail: null,
-        screenX: 0,
-        screenY: 0,
-        clientX: 0,
-        clientY: 0,
-        ctrlKey: false,
-        altKey: false,
-        shiftKey: false,
-        metaKey: false,
-        button: 0,
-        relatedTarget: null
-      };
 
-      Object.keys(props).forEach(function(k) {
-        if (k in inDict) {
-          props[k] = inDict[k];
-        }
-      });
+      // import values from the given dictionary
+      var props = {}, p;
+      for(var i = 0; i < MOUSE_PROPS.length; i++) {
+        p = MOUSE_PROPS[i];
+        props[p] = inDict[p] || MOUSE_DEFAULTS[i];
+      }
 
       // define the properties inherited from MouseEvent
       e.initMouseEvent(
@@ -234,6 +284,9 @@
         props.altKey, props.shiftKey, props.metaKey, props.button, props.relatedTarget
       );
     }
+
+    // make the event pass instanceof checks
+    e.__proto__ = PointerEvent.prototype;
 
     // define the buttons property according to DOM Level 3 spec
     if (!HAS_BUTTONS) {
@@ -266,6 +319,9 @@
     return e;
   }
 
+  // PointerEvent extends MouseEvent
+  PointerEvent.prototype = Object.create(MouseEvent.prototype);
+
   // attach to window
   if (!scope.PointerEvent) {
     scope.PointerEvent = PointerEvent;
@@ -273,106 +329,133 @@
 })(window);
 
 /**
- * This module implements an ordered list of pointer states
- * Each pointer object here has two properties:
- *  - id: the id of the pointer
- *  - event: the source event of the pointer, complete with positions
- *
- * The ordering of the pointers is from oldest pointer to youngest pointer,
- * which allows for multi-pointer gestures to not rely on the actual ids
- * imported from the source events.
- *
- * Any operation that needs to store state information about pointers can hang
- * objects off of the pointer in the pointermap. This information will be
- * preserved until the pointer is removed from the pointermap.
+ * This module implements an map of pointer states
  */
 (function(scope) {
+  var USE_MAP = window.Map && window.Map.prototype.forEach;
+  var POINTERS_FN = function(){ return this.size; };
   function PointerMap() {
-    this.ids = [];
-    this.pointers = [];
-  };
+    if (USE_MAP) {
+      var m = new Map();
+      m.pointers = POINTERS_FN;
+      return m;
+    } else {
+      this.keys = [];
+      this.values = [];
+    }
+  }
 
   PointerMap.prototype = {
     set: function(inId, inEvent) {
-      var i = this.ids.indexOf(inId);
+      var i = this.keys.indexOf(inId);
       if (i > -1) {
-        this.pointers[i] = inEvent;
+        this.values[i] = inEvent;
       } else {
-        this.ids.push(inId);
-        this.pointers.push(inEvent);
+        this.keys.push(inId);
+        this.values.push(inEvent);
       }
     },
     has: function(inId) {
-      return this.ids.indexOf(inId) > -1;
+      return this.keys.indexOf(inId) > -1;
     },
     'delete': function(inId) {
-      var i = this.ids.indexOf(inId);
+      var i = this.keys.indexOf(inId);
       if (i > -1) {
-        this.ids.splice(i, 1);
-        this.pointers.splice(i, 1);
+        this.keys.splice(i, 1);
+        this.values.splice(i, 1);
       }
     },
     get: function(inId) {
-      var i = this.ids.indexOf(inId);
-      return this.pointers[i];
-    },
-    get size() {
-      return this.pointers.length;
+      var i = this.keys.indexOf(inId);
+      return this.values[i];
     },
     clear: function() {
-      this.ids.length = 0;
-      this.pointers.length = 0;
+      this.keys.length = 0;
+      this.values.length = 0;
     },
     forEach: function(callback, thisArg) {
-      this.ids.forEach(function(id, i) {
-        callback.call(thisArg, id, this.pointers[i], this);
+      this.keys.forEach(function(id, i) {
+        callback.call(thisArg, id, this.values[i], this);
       }, this);
+    },
+    pointers: function() {
+      return this.keys.length;
     }
   };
 
-  if (window.Map && Map.prototype.forEach) {
-    scope.PointerMap = Map;
-  } else {
-    scope.PointerMap = PointerMap;
-  }
+  scope.PointerMap = PointerMap;
 })(window.PointerEventsPolyfill);
 
-// SideTable is a weak map where possible. If WeakMap is not available the
-// association is stored as an expando property.
-var SideTable;
-// TODO(arv): WeakMap does not allow for Node etc to be keys in Firefox
-if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 0) {
-  SideTable = WeakMap;
-} else {
-  (function() {
-    var defineProperty = Object.defineProperty;
-    var counter = Date.now() % 1e9;
-
-    SideTable = function() {
-      this.name = '__st' + (Math.random() * 1e9 >>> 0) + (counter++ + '__');
-    };
-
-    SideTable.prototype = {
-      set: function(key, value) {
-        var entry = key[this.name];
-        if (entry && entry[0] === key)
-          entry[1] = value;
-        else
-          defineProperty(key, this.name, {value: [key, value], writable: true});
-      },
-      get: function(key) {
-        var entry;
-        return (entry = key[this.name]) && entry[0] === key ?
-            entry[1] : undefined;
-      },
-      delete: function(key) {
-        this.set(key, undefined);
-      }
-    }
-  })();
-}
-
 (function(scope) {
+  var CLONE_PROPS = [
+    // MouseEvent
+    'bubbles',
+    'cancelable',
+    'view',
+    'detail',
+    'screenX',
+    'screenY',
+    'clientX',
+    'clientY',
+    'ctrlKey',
+    'altKey',
+    'shiftKey',
+    'metaKey',
+    'button',
+    'relatedTarget',
+    // DOM Level 3
+    'buttons',
+    // PointerEvent
+    'pointerId',
+    'width',
+    'height',
+    'pressure',
+    'tiltX',
+    'tiltY',
+    'pointerType',
+    'hwTimestamp',
+    'isPrimary',
+    // event instance
+    'type',
+    'target',
+    'currentTarget',
+    'which'
+  ];
+
+  var CLONE_DEFAULTS = [
+    // MouseEvent
+    false,
+    false,
+    null,
+    null,
+    0,
+    0,
+    0,
+    0,
+    false,
+    false,
+    false,
+    false,
+    0,
+    null,
+    // DOM Level 3
+    undefined,
+    // PointerEvent
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    '',
+    0,
+    false,
+    // event instance
+    '',
+    null,
+    null,
+    0
+  ];
 
   /**
    * This module is for normalizing events. Mouse and Touch events will be
@@ -387,9 +470,9 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
    *   - pointercancel: a pointer will no longer generate events
    */
   var dispatcher = {
-    targets: new SideTable,
-    handledEvents: new SideTable,
-    pointermap: new scope.PointerMap,
+    targets: new WeakMap(),
+    handledEvents: new WeakMap(),
+    pointermap: new scope.PointerMap(),
     eventMap: {},
     // Scope objects for native events.
     // This exists for ease of testing.
@@ -430,6 +513,9 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
         es.unregister.call(es, element);
       }
     },
+    contains: scope.external.contains || function(container, contained) {
+      return container.contains(contained);
+    },
     // EVENTS
     down: function(inEvent) {
       this.fireEvent('pointerdown', inEvent);
@@ -460,13 +546,13 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       this.fireEvent('pointercancel', inEvent);
     },
     leaveOut: function(event) {
-      if (!event.target.contains(event.relatedTarget)) {
+      if (!this.contains(event.target, event.relatedTarget)) {
         this.leave(event);
       }
       this.out(event);
     },
     enterOver: function(event) {
-      if (!event.target.contains(event.relatedTarget)) {
+      if (!this.contains(event.target, event.relatedTarget)) {
         this.enter(event);
       }
       this.over(event);
@@ -498,10 +584,10 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
         this.removeEvent(target, e);
       }, this);
     },
-    addEvent: function(target, eventName) {
+    addEvent: scope.external.addEvent || function(target, eventName) {
       target.addEventListener(eventName, this.boundHandler);
     },
-    removeEvent: function(target, eventName) {
+    removeEvent: scope.external.removeEvent || function(target, eventName) {
       target.removeEventListener(eventName, this.boundHandler);
     },
     // EVENT CREATION AND TRACKING
@@ -514,7 +600,14 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
      * @return {Event} A PointerEvent of type `inType`
      */
     makeEvent: function(inType, inEvent) {
+      // relatedTarget must be null if pointer is captured
+      if (this.captureInfo) {
+        inEvent.relatedTarget = null;
+      }
       var e = new PointerEvent(inType, inEvent);
+      if (inEvent.preventDefault) {
+        e.preventDefault = inEvent.preventDefault;
+      }
       this.targets.set(e, this.targets.get(inEvent) || inEvent.target);
       return e;
     },
@@ -531,9 +624,16 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
      *    properties.
      */
     cloneEvent: function(inEvent) {
-      var eventCopy = {};
-      for (var n in inEvent) {
-        eventCopy[n] = inEvent[n];
+      var eventCopy = {}, p;
+      for (var i = 0; i < CLONE_PROPS.length; i++) {
+        p = CLONE_PROPS[i];
+        eventCopy[p] = inEvent[p] || CLONE_DEFAULTS[i];
+      }
+      // keep the semantics of preventDefault
+      if (inEvent.preventDefault) {
+        eventCopy.preventDefault = function() {
+          inEvent.preventDefault();
+        };
       }
       return eventCopy;
     },
@@ -576,7 +676,7 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
      * @param {Event} inEvent The event to be dispatched.
      * @return {Boolean} True if an event handler returns true, false otherwise.
      */
-    dispatchEvent: function(inEvent) {
+    dispatchEvent: scope.external.dispatchEvent || function(inEvent) {
       var t = this.getTarget(inEvent);
       if (t) {
         return t.dispatchEvent(inEvent);
@@ -742,6 +842,12 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
     },
     prepareEvent: function(inEvent) {
       var e = dispatcher.cloneEvent(inEvent);
+      // forward mouse preventDefault
+      var pd = e.preventDefault;
+      e.preventDefault = function() {
+        inEvent.preventDefault();
+        pd();
+      };
       e.pointerId = this.POINTER_ID;
       e.isPrimary = true;
       e.pointerType = this.POINTER_TYPE;
@@ -794,7 +900,7 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       this.cleanupMouse();
     },
     cleanupMouse: function() {
-      pointermap.delete(this.POINTER_ID);
+      pointermap['delete'](this.POINTER_ID);
     }
   };
 
@@ -816,7 +922,7 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
 
   // handler block for native touch events
   var touchEvents = {
-    scrollType: new SideTable,
+    scrollType: new WeakMap(),
     events: [
       'touchstart',
       'touchmove',
@@ -851,11 +957,11 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       }
     },
     elementRemoved: function(el) {
-      this.scrollType.delete(el);
+      this.scrollType['delete'](el);
       dispatcher.unlisten(el, this.events);
       // remove touch-action from shadow
       allShadows(el).forEach(function(s) {
-        this.scrollType.delete(s);
+        this.scrollType['delete'](s);
         dispatcher.unlisten(s, this.events);
       }, this);
     },
@@ -900,15 +1006,16 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       return this.firstTouch === inTouch.identifier;
     },
     setPrimaryTouch: function(inTouch) {
-      if (this.firstTouch === null) {
+      // set primary touch if there no pointers, or the only pointer is the mouse
+      if (pointermap.pointers() === 0 || (pointermap.pointers() === 1 && pointermap.has(1))) {
         this.firstTouch = inTouch.identifier;
         this.firstXY = {X: inTouch.clientX, Y: inTouch.clientY};
         this.scrolling = false;
         this.cancelResetClickCount();
       }
     },
-    removePrimaryTouch: function(inTouch) {
-      if (this.isPrimaryTouch(inTouch)) {
+    removePrimaryPointer: function(inPointer) {
+      if (inPointer.isPrimary) {
         this.firstTouch = null;
         this.firstXY = null;
         this.resetClickCount();
@@ -950,6 +1057,14 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
     processTouches: function(inEvent, inFunction) {
       var tl = inEvent.changedTouches;
       var pointers = touchMap(tl, this.touchToPointer, this);
+      // forward touch preventDefaults
+      pointers.forEach(function(p) {
+        p.preventDefault = function() {
+          this.scrolling = false;
+          this.firstXY = null;
+          inEvent.preventDefault();
+        };
+      }, this);
       pointers.forEach(inFunction, this);
     },
     // For single axis scrollers, determines whether the element should emit
@@ -994,9 +1109,9 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
     // pointercancel for this "abandoned" touch
     vacuumTouches: function(inEvent) {
       var tl = inEvent.touches;
-      // pointermap.size should be < tl.length here, as the touchstart has not
+      // pointermap.pointers() should be < tl.length here, as the touchstart has not
       // been processed yet.
-      if (pointermap.size >= tl.length) {
+      if (pointermap.pointers() >= tl.length) {
         var d = [];
         pointermap.forEach(function(key, value) {
           // Never remove pointerId == 1, which is mouse.
@@ -1087,8 +1202,8 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       this.cleanUpPointer(inPointer);
     },
     cleanUpPointer: function(inPointer) {
-      pointermap.delete(inPointer.pointerId);
-      this.removePrimaryTouch(inPointer);
+      pointermap['delete'](inPointer.pointerId);
+      this.removePrimaryPointer(inPointer);
     },
     // prevent synth mouse events from creating pointer events
     dedupSynthMouse: function(inEvent) {
@@ -1154,7 +1269,7 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       return e;
     },
     cleanup: function(id) {
-      pointermap.delete(id);
+      pointermap['delete'](id);
     },
     MSPointerDown: function(inEvent) {
       pointermap.set(inEvent.pointerId, inEvent);
@@ -1254,7 +1369,7 @@ if (typeof WeakMap !== 'undefined' && navigator.userAgent.indexOf('Firefox/') < 
       dispatcher.releaseCapture(pointerId, this);
     };
   }
-  if (!Element.prototype.setPointerCapture) {
+  if (window.Element && !Element.prototype.setPointerCapture) {
     Object.defineProperties(Element.prototype, {
       'setPointerCapture': {
         value: s
