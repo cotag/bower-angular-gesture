@@ -391,7 +391,9 @@
                         element.off('pointerup', endEvent);
                         element.off('pointercancel', cancelEvent);
                         element.off('lostpointercapture', cancelEvent);
-                        element[0].releasePointerCapture(event.pointerId);
+                        if (element[0].releasePointerCapture) {
+                            element[0].releasePointerCapture(event.pointerId);
+                        }
 
                         tryDetect(event, $utils.EVENT_END, instances);
                     },
