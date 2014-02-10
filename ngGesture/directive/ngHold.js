@@ -29,7 +29,8 @@
                             event = event.originalEvent || event;
                             // mouse events use which, pointer events use button
                             if (event.button === 2) {
-                                event.preventDefault(); // Prevent the context menu
+                                event.preventDefault();         // Prevent the context menu
+                                inst.trigger('hold', event);    // Trigger the hold event
                             }
                         });
                     }
