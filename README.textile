@@ -3,10 +3,10 @@ h1. Mobile Gestures for Angular JS !https://travis-ci.org/cotag/angular-gesture.
 To use with http://yeoman.io/ do the following:
 
 # Open bower.json or components.json
-# Add @"angular-gesture": "~1.2.0"@ to your dependency list
+# Add @"angular-gesture": "~1.4.0"@ to your dependency list
 # Run @bower install@
 # In your application you can now add: (depending on what you need)
-#* @<script src="components/angular-gesture/pointerevents.js"></script>@
+#* @<script src="components/pointerevents-polyfill/pointerevents.dev.js"></script>@
 #* @<script src="components/angular-gesture/ngGesture/gesture.js"></script>@
 #* @<script src="components/angular-gesture/ngGesture/directive/ngTouch.js"></script>@
 #* @<script src="components/angular-gesture/ngGesture/directive/ngClick.js"></script>@

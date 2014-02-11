@@ -459,6 +459,21 @@
                             captureProcessed = false;
 
 
+                        // Unregister any existing events already using this pointer
+                        // This will only occur when we have not received an end event
+                        // So is considered a fail safe - hence stop detect
+                        // Seems to happen when mouse is released over chrome developer tools
+                        if (pointerAllocation[event.pointerId]) {
+                            instances = pointerAllocation[event.pointerId];
+
+                            for (i = 0; i < instances.length; i += 1) {
+                                instances[i].stopDetect();
+                            }
+
+                            instances = []; // reset instances var
+                        }
+
+
                         // run up the tree looking for mobile elements
                         i = element;
                         do {
