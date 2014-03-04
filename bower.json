@@ -4,6 +4,6 @@
   "main": "./ngGesture/gesture.js",
   "dependencies": {
     "angular": "~1.2.0",
-    "pointerevents-polyfill": "~0.1.4"
+    "pointerevents-polyfill": "~0.2.0"
   }
 }
