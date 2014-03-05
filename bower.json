@@ -1,6 +1,6 @@
 {
   "name": "angular-gesture",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "main": "./ngGesture/gesture.js",
   "dependencies": {
     "angular": "~1.2.0",
