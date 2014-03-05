@@ -346,12 +346,12 @@
                     moveEvent = function (event) {
                         event = event.originalEvent || event; // in case of jQuery
 
-                        var element = angular.element(this),
-                            i,
-                            instance,
-                            instances = [];
-
                         if (pointerAllocation[event.pointerId]) {
+                            var element = pointerAllocation[event.pointerId].element,
+                                i,
+                                instance,
+                                instances = [];
+
                             // clone the instances array
                             instances.push.apply(instances, pointerAllocation[event.pointerId]);
 
@@ -361,20 +361,20 @@
                                 // Update pointer
                                 eventPointers[instance][event.pointerId] = event;
                             }
-                        }
 
-                        tryDetect(event, $utils.EVENT_MOVE, instances);
+                            tryDetect(event, $utils.EVENT_MOVE, instances);
+                        }
                     },
 
                     endEvent = function (event) {
                         event = event.originalEvent || event; // in case of jQuery
 
-                        var element = angular.element(this),
-                            i,
-                            instance,
-                            instances = [];
-
                         if (pointerAllocation[event.pointerId]) {
+                            var element = pointerAllocation[event.pointerId].element,
+                                i,
+                                instance,
+                                instances = [];
+
                             // clone the instances array
                             instances.push.apply(instances, pointerAllocation[event.pointerId]);
 
@@ -384,58 +384,23 @@
                                 // Update pointer
                                 eventPointers[instance][event.pointerId] = event;
                             }
-                        }
-                        
-                        // We can ignore events from this pointer now
-                        element.off(EVENT_MOVE, moveEvent);
-                        element.off('pointerup', endEvent);
-                        element.off('pointercancel', cancelEvent);
-                        element.off('lostpointercapture', cancelEvent);
-                        if (element[0].releasePointerCapture) {
-                            element[0].releasePointerCapture(event.pointerId);
-                        }
 
-                        tryDetect(event, $utils.EVENT_END, instances);
-                    },
+                            // We can ignore events from this pointer now
+                            element.off(EVENT_MOVE, moveEvent);
+                            //element.off('pointerup', endEvent);
+                            //element.off('pointercancel', endEvent);
+                            //element.off('lostpointercapture', endEvent);
 
-                    cancelEvent = function (event) {
-                        event = event.originalEvent || event; // in case of jQuery
-
-                        var element = angular.element(this),
-                            i,
-                            instance,
-                            instances = [];
-
-                        if (pointerAllocation[event.pointerId]) {
-                            // clone the instances array
-                            instances.push.apply(instances, pointerAllocation[event.pointerId]);
-
-                            for (i = 0; i < instances.length; i += 1) {
-                                instance = instances[i];
-
-                                // Update pointer
-                                if (eventPointers[instance].length > 1) {
-                                    delete eventPointers[instance][event.pointerId];
-                                } else {
-                                    instance.stopDetect();
+                            // Try to release the pointer (may already be released)
+                            try {
+                                if (element[0].releasePointerCapture) {
+                                    element[0].releasePointerCapture(event.pointerId);
                                 }
-                            }
+                            } catch (e) {}
 
                             delete pointerAllocation[event.pointerId];
+                            tryDetect(event, $utils.EVENT_END, instances);
                         }
-                        
-                        // We can ignore events from this pointer now
-                        element.off(EVENT_MOVE, moveEvent);
-                        element.off('pointerup', endEvent);
-                        element.off('pointercancel', cancelEvent);
-                        element.off('lostpointercapture', cancelEvent);
-                        // Avoids a possible error in the polyfill
-                        // A click event that cancels a captured pointer generates a
-                        // start event that never has an end.
-                        element.off(EVENT_START, startEvent);
-                        $timeout(function () {
-                            element.on(EVENT_START, startEvent);
-                        }, 0, false);
                     },
 
                     startEvent = function (event) {
@@ -487,6 +452,7 @@
 
                         // Check if any of the elements are interested in capturing this pointer
                         pointerAllocation[event.pointerId] = [];
+                        pointerAllocation[event.pointerId].element = element;
                         for (i = 0; i < instances.length; i += 1) {
                             instance = instances[i];
 
@@ -514,14 +480,17 @@
 
                                     // Listen for further events on this element
                                     element.on(EVENT_MOVE, moveEvent);
-                                    element.on(EVENT_END, endEvent);
-                                    element.on(EVENT_CANCEL, cancelEvent);
+                                    //element.on(EVENT_END, endEvent);
+                                    //element.on(EVENT_CANCEL, endEvent);
                                 }
                             }
                         }
 
                         tryDetect(event, $utils.EVENT_START, instances);
                     };
+
+                angular.element($window).on(EVENT_END, endEvent);
+                angular.element($window).on(EVENT_CANCEL, endEvent);
 
                 return {
                     /**
@@ -577,7 +546,7 @@
                                 /**
                                  * Provide a handler for an event
                                  * I would have liked to use angulars.on and triggered real events
-                                 * to simlify creating complex widgets via delegation or for stats etc
+                                 * to simplify creating complex widgets via delegation or for stats etc
                                  * however I couldn't do this and support IE8 at the same time so I
                                  * used a similar interface to JQLite for when IE8 support is dropped
                                  */
