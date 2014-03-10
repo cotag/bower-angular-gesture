@@ -2,8 +2,11 @@
     'use strict';
 
     var emptyHandler = function () {
-        return false;
-    };
+            return false;
+        },
+        pointerCancel = 'pointercancel',
+        doubleTap = 'doubletap',
+        tap = 'tap';
 
     angular.module('ngGesture')
 
@@ -33,7 +36,7 @@
             });
 
             $gesture.register({
-                name: 'tap',
+                name: tap,
                 index: 100,
                 defaults: {
                     tapMaxPointers      : 1,
@@ -87,7 +90,7 @@
 
                         // when the touch time is higher then the max touch time
                         // or when the moving distance is too much
-                        if (!this.valid || cancelClick || ev.deltaTime > inst.options.tapMaxDuration || ev.distance > inst.options.tapMoveTolerance) {
+                        if (!this.valid || cancelClick || ev.srcEvent.type === pointerCancel || ev.deltaTime > inst.options.tapMaxDuration || ev.distance > inst.options.tapMoveTolerance) {
                             if (inst.current.name !== '') {
                                 // Prevent click if another gesture is occurring
                                 // Otherwise run with browser default behavior
@@ -109,7 +112,7 @@
                             if (inst.options.tapAlways) {
                                 inst.trigger(inst.current.name, ev);
                             }
-                            inst.trigger('doubletap', ev);
+                            inst.trigger(doubleTap, ev);
                             this.did_doubletap = true;
                         } else {
                             // do a single tap
@@ -173,7 +176,7 @@
                 // something else nearby.
                 element[0].onclick = emptyHandler;
 
-                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).on('tap', function(eventdata) {
+                $gesture.gestureOn(element, tap, $gesture.extractSettings(scope, attr)).on(tap, function(eventdata) {
                     scope.$apply(function() {
                         clickHandler(scope, {$event: eventdata, $element: element});
                     });
@@ -213,7 +216,7 @@
                 // something else nearby.
                 element[0].onclick = emptyHandler;
 
-                $gesture.gestureOn(element, 'tap', $gesture.extractSettings(scope, attr)).on('doubletap', function(eventdata) {
+                $gesture.gestureOn(element, tap, $gesture.extractSettings(scope, attr)).on(doubleTap, function(eventdata) {
                     scope.$apply(function() {
                         clickHandler(scope, {$event: eventdata, $element: element});
                     });
