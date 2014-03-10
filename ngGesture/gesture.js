@@ -391,6 +391,9 @@
                             //element.off('pointercancel', endEvent);
                             //element.off('lostpointercapture', endEvent);
 
+                            // Ensure we remove the pointer reference before releasing capture
+                            delete pointerAllocation[event.pointerId];
+                            
                             // Try to release the pointer (may already be released)
                             try {
                                 if (element[0].releasePointerCapture) {
@@ -398,7 +401,6 @@
                                 }
                             } catch (e) {}
 
-                            delete pointerAllocation[event.pointerId];
                             tryDetect(event, $utils.EVENT_END, instances);
                         }
                     },
