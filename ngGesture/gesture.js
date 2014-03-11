@@ -423,7 +423,7 @@
                             i,
                             instance,
                             instances = [],
-                            captureProcessed = element.attr('no-capture') !== undefined;
+                            captureProcessed = false;
 
 
                         // Unregister any existing events already using this pointer
@@ -446,7 +446,18 @@
                         do {
                             instance = i.data('__$gesture.config__');
                             if (instance) {
-                                instances.push(instance);
+                                // Check for targeted gestures (i.e direct hit not just in the tree)
+                                if (i.attr('on-target') !== undefined) {
+                                    if (i[0] === event.target) {
+                                        captureProcessed = i.attr('no-capture') !== undefined;
+                                        instances.push(instance);
+                                    }
+                                } else {
+                                    if (i.attr('no-capture') !== undefined) {
+                                        captureProcessed = true;
+                                    }
+                                    instances.push(instance);
+                                }
                             }
                             i = i.parent();
                         } while (i[0]);
