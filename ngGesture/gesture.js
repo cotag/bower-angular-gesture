@@ -423,7 +423,7 @@
                             i,
                             instance,
                             instances = [],
-                            captureProcessed = false;
+                            captureProcessed = element.attr('no-capture') !== undefined;
 
 
                         // Unregister any existing events already using this pointer
