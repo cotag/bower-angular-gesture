@@ -29,7 +29,7 @@ Inspired by "AngularJS Touch":https://github.com/angular/angular.js/tree/master/
 h2. How it works
 
 Angular gesture takes a different approach to handling input events to most gesture libraries.
-Instead of only dealing with events that fall on the objecs, pointers are captured so events continue to be processed by the element they originally touched.
+Instead of only dealing with events that fall on the element, pointers are captured so events continue to be processed by the element they originally touched.
 
 This means if you drag too fast or your pointer falls outside the object you are interacting with the gesture isn't cancelled.
 Events are then passed up the DOM from that original touch point.
