@@ -21,6 +21,49 @@ h2. Supports the following gestures out of the box
 * click (tap)
 * double click (double tap)
 * swipe (up, down, left and right)
-* drag ( "demo":http://jsfiddle.net/ew7Ta/1/ )
+* drag
 
 Inspired by "AngularJS Touch":https://github.com/angular/angular.js/tree/master/src/ngTouch (API compatible)
+
+
+h2. How it works
+
+Angular gesture takes a different approach to handling input events to most gesture libraries.
+Instead of only dealing with events that fall on the objecs, pointers are captured so events continue to be processed by the element they originally touched.
+
+This means if you drag too fast or your pointer falls outside the object you are interacting with the gesture isn't cancelled.
+Events are then passed up the DOM from that original touch point.
+
+h2. Usage
+
+Events are assigned to DOM elements via attributes
+
+@<div ng-swipe-left="functionInScope($event, $element)"></div>@
+
+Where when the user swipes left on a touch device (or clicks and rapidly moves the mouse left) the function is called.
+
+@$event@ and @$element@ are optional and can be passed to the function in any order
+
+
+h2. Event curation
+
+Modifying default behaviour
+
+# Somtimes you'll only want to events to trigger if the user directly touches the element (versus an element further up the DOM)
+#* Add @on-target@ to the element @<div ng-touch="handler()" on-target>@
+# Sometimes you may not want to capture the mouse pointer. This can break form interactions.
+#* Add @no-capture@ to the element
+# Sometimes you don't want the interaction to propagate to elements below the current element
+#* Add @ng-stop@ directive to the element
+#* This is a shortcut for @ng-touch="$event.stopPropagation()"@
+
+Browser behaviours and event defaults are also modifyable via element attributes. Below are the defaults
+
+* @user-select="none"@ https://developer.mozilla.org/en-US/docs/Web/CSS/user-select
+* @touch-callout="none"@ http://css-infos.net/property/-webkit-touch-callout
+* @content-zooming="none"@ http://msdn.microsoft.com/en-us/library/windows/apps/hh441251.aspx
+* @user-drag="none"@ http://css-infos.net/property/-webkit-user-drag
+* @tap-highlight-color="rgba(0,0,0,0)"@ http://css-infos.net/property/-webkit-tap-highlight-color
+
+Each event type has its own default settings for limits, breakpoints, etc all can be changed via attributes.
+
