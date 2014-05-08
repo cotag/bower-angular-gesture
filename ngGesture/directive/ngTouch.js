@@ -101,6 +101,35 @@
 
         /**
          * @ngdoc directive
+         * @name ngGesture.directive:ngStop
+         *
+         * @description
+         * Stops gesture events from propagating past this point in the DOM
+         *
+         * @element ANY
+         *
+         * @example
+                <doc:example>
+                    <doc:source>
+                        <button ng-stop>
+                            No events beyond this point
+                        </button>
+                    </doc:source>
+                </doc:example>
+         */
+        .directive('ngStop', ['$parse', '$gestureTouch', function($parse, $gesture) {
+            return function(scope, element, attr) {
+                $gesture.gestureOn(element, 'touch', $gesture.extractSettings(scope, attr)).on('touch', function(eventdata) {
+                    scope.$apply(function() {
+                        eventdata.stopPropagation();
+                    });
+                });
+            };
+        }])
+
+
+        /**
+         * @ngdoc directive
          * @name ngGesture.directive:ngMove
          *
          * @description
