@@ -438,6 +438,12 @@
                             }
 
                             instances = []; // reset instances var
+                            
+                            // Check the element is in the DOM
+                            if (!jQuery.contains(document.documentElement, element[0])) {
+                                element[0].releasePointerCapture(event.pointerId);
+                                return; // nothing more we can do
+                            }
                         }
 
 
