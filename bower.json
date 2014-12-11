@@ -1,9 +1,8 @@
 {
   "name": "angular-gesture",
-  "version": "1.4.3",
-  "main": "./ngGesture/gesture.js",
+  "main": ["./ngGesture/gesture.js", "./ngGesture/directive/*.js"],
   "dependencies": {
-    "angular": ">=1.2.0",
-    "pointerevents-polyfill": "~0.2.0"
+	"angular": ">=1.2.0",
+	"pointerevents-polyfill": "~0.2.0"
   }
 }
