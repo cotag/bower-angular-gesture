@@ -1,6 +1,6 @@
 {
   "name": "angular-gesture",
-  "version": "1.4.3",
+  "version": "1.4.8",
   "main": ["./ngGesture/gesture.js", "./ngGesture/directive/*.js"],
   "dependencies": {
 	"angular": ">=1.2.0",
