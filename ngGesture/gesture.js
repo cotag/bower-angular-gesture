@@ -405,6 +405,9 @@
                         }
                     },
 
+                    lastEventTarget,
+                    lastEventType,
+                    lastEventReset,
                     startEvent = function (event) {
                         event = event.originalEvent || event; // in case of jQuery
 
@@ -418,6 +421,22 @@
                         //if (event.isPrimary === true) {
                         //    event.preventDefault();
                         //}
+                        
+                        if (lastEventType == event.type && lastEventTarget == event.currentTarget) {
+                            $timeout.cancel(lastEventReset);
+                            lastEventType = null;
+                            lastEventTarget = null;
+                            lastEventReset = null;
+                            return;
+                        } else {
+                            lastEventType = event.type;
+                            lastEventTarget = event.currentTarget;
+                            lastEventReset = $timeout(function() {
+                                lastEventType = null;
+                                lastEventTarget = null;
+                                lastEventReset = null;
+                            }, 50);
+                        }
 
                         var element = angular.element(this),
                             i,
